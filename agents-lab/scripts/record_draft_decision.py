@@ -23,12 +23,14 @@ def read_decision(path):
 
 
 def verified_ready_draft(path):
-    task = read_task(path)
+    task_path = Path(path)
+    task_bytes = task_path.read_bytes()
+    task = read_task(task_path)
     if task["status"] != "ready":
         raise ValueError("draft task is {}: ready draft required".format(task["status"]))
     with redirect_stdout(io.StringIO()):
-        verify_draft_task(SimpleNamespace(task=path))
-    if read_task(path) != task:
+        verify_draft_task(SimpleNamespace(task=task_path))
+    if task_path.read_bytes() != task_bytes:
         raise ValueError("draft task changed during verification")
     source_task = read_task(Path(task["source_task"]))
     if source_task["status"] != "ready":

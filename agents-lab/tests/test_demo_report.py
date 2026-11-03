@@ -428,6 +428,29 @@ class DemoReportCliTests(unittest.TestCase):
         self.assertIn("draft task changed during verification", error.getvalue())
         self.assertFalse(record.exists())
 
+    def test_draft_task_body_changed_after_verification_is_not_accepted(self):
+        self.source_run()
+        self.assertEqual(self.write_draft().returncode, 0)
+        self.assertEqual(self.review_draft().returncode, 0)
+        record = self.root / "task-body-race-decision.md"
+        module = self.load_decision_module()
+        real_verify = module.verify_draft_task
+
+        def verify_then_edit_task_body(args):
+            real_verify(args)
+            with self.draft_task.open("a", encoding="utf-8") as stream:
+                stream.write("\n## Notes\nChanged after verification.\n")
+
+        with mock.patch.object(module, "verify_draft_task", side_effect=verify_then_edit_task_body):
+            with mock.patch.object(sys, "argv", [str(DECISION), "record", "--draft-task", str(self.draft_task), "--decision", "accepted", "--out", str(record)]):
+                error = io.StringIO()
+                with redirect_stderr(error):
+                    exit_code = module.main()
+
+        self.assertEqual(exit_code, 2, error.getvalue())
+        self.assertIn("draft task changed during verification", error.getvalue())
+        self.assertFalse(record.exists())
+
     def test_returned_record_with_empty_reason_section_does_not_verify(self):
         self.source_run()
         self.assertEqual(self.write_draft().returncode, 0)

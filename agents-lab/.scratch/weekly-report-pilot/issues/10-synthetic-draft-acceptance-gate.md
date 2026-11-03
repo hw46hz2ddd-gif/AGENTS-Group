@@ -36,7 +36,7 @@
 
 ## Completion
 
-- `python3 tests/test_demo_report.py`: 25 tests passed, including the decision workflow and post-verification race cases.
-- `python3 -m unittest discover -s tests -v`: 47 tests passed.
+- `python3 tests/test_demo_report.py`: 26 tests passed, including the decision workflow and post-verification race cases.
+- `python3 -m unittest discover -s tests -v`: 48 tests passed.
 - `python3 scripts/codex_check.py`: passed.
 - `git diff --check`: passed.
