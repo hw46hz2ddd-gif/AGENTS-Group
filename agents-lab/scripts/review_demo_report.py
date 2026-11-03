@@ -10,7 +10,10 @@ from types import SimpleNamespace
 
 from check_inputs import load_contract
 from report_task import task_text
-from source_audit import read_task, sha256, verify_task
+from source_audit import (
+    read_task, resolve_review_reference, resolve_task_reference, sha256,
+    task_reference, verify_task,
+)
 
 
 def draft_fields(lines, errors):
@@ -37,7 +40,7 @@ def metric_rows(lines, errors):
             errors.append("line {}: metric row must have five columns".format(number))
             continue
         if columns[0] in rows:
-            errors.append("line {}: repeated metric {}".format(number, columns[0]))
+            errors.append("line {}: repeated metric row".format(number))
         rows[columns[0]] = (columns, number)
     return rows
 
@@ -61,7 +64,7 @@ def check_draft(content, task, source_task, evidence, contract, errors):
         if name not in metadata:
             errors.append("missing {} in draft".format(name))
         elif metadata[name][0] != expected:
-            errors.append("line {}: {} is {!r}; expected {!r}".format(metadata[name][1], name, metadata[name][0], expected))
+            errors.append("line {}: {} differs from source task".format(metadata[name][1], name))
 
     rows = metric_rows(lines, errors)
     recorded_inputs = {item["path"]: item["sha256"] for item in evidence["inputs"]}
@@ -83,9 +86,12 @@ def check_draft(content, task, source_task, evidence, contract, errors):
         )
         for label, actual, wanted in zip(("metric", "value", "unit", "source", "source fingerprint"), columns, expected):
             if actual != wanted:
-                errors.append("line {}: {} {} is {!r}; expected {!r}".format(number, metric, label, actual, wanted))
+                if label == "value" and re.fullmatch(r"-?\d+", actual) and re.fullmatch(r"-?\d+", wanted):
+                    errors.append("line {}: {} value is {}; expected {}".format(number, metric, actual, wanted))
+                else:
+                    errors.append("line {}: {} {} differs from expected".format(number, metric, label))
     for extra in sorted(set(rows) - expected_metrics):
-        errors.append("line {}: unexpected metric {}".format(rows[extra][1], extra))
+        errors.append("line {}: unexpected metric row".format(rows[extra][1]))
     known_fields = ("来源任务：", "证据文件：", "证据 SHA-256：", "口径版本：", "口径 SHA-256：", "上周产量：", "产量环比：")
     for number, line in enumerate(lines, start=1):
         if number == 1 or line.startswith("|") or line.startswith(known_fields):
@@ -98,53 +104,58 @@ def review_task(args):
     task = read_task(args.task)
     if task["status"] != "working":
         raise ValueError("draft task is not working; reviewed versions are immutable")
-    if args.out.resolve() in (args.task.resolve(), Path(task["draft"]).resolve()):
+    draft_path = resolve_task_reference(task["draft"], args.task)
+    if args.out.resolve() in (args.task.resolve(), draft_path.resolve()):
         raise ValueError("review path must differ from task and draft paths")
 
     errors = []
-    source_path = Path(task["source_task"])
+    source_path = resolve_task_reference(task["source_task"], args.task)
     source_task = read_task(source_path)
     if source_task["status"] != "ready":
         errors.append("source task is not ready")
     try:
         verify_task(SimpleNamespace(task=source_path))
     except (OSError, UnicodeError, ValueError, KeyError, TypeError) as error:
-        errors.append("source task verification failed: {}".format(error))
+        errors.append("source task verification failed ({})".format(type(error).__name__))
     if task.get("source_task_id") != source_task["id"] or task["period"] != source_task["period"]:
         errors.append("draft task identity differs from source task")
-    if task.get("evidence") != source_task.get("evidence") or task.get("evidence_sha256") != source_task.get("evidence_sha256"):
+    source_evidence_path = resolve_task_reference(source_task["evidence"], source_path)
+    source_task["evidence"] = task_reference(source_evidence_path, source_path)
+    draft_evidence = resolve_task_reference(task["evidence"], args.task)
+    if draft_evidence.resolve() != source_evidence_path.resolve() or task.get("evidence_sha256") != source_task.get("evidence_sha256"):
         errors.append("draft task evidence reference differs from source task")
     if task.get("contract_sha256") != source_task.get("contract_sha256"):
         errors.append("draft task contract fingerprint differs from source task")
 
     try:
-        evidence = json.loads(Path(source_task["evidence"]).read_text(encoding="utf-8"))
+        evidence = json.loads(source_evidence_path.read_text(encoding="utf-8"))
         if not isinstance(evidence, dict):
             raise ValueError("expected a JSON object")
     except (OSError, UnicodeError, ValueError) as error:
         evidence = None
-        errors.append("evidence missing or unreadable: {}".format(error))
+        errors.append("evidence missing or unreadable ({})".format(type(error).__name__))
     try:
-        source_review = json.loads(Path(source_task["review"]).read_text(encoding="utf-8"))
+        source_review_path = resolve_task_reference(source_task["review"], source_path)
+        source_review = json.loads(source_review_path.read_text(encoding="utf-8"))
         if not isinstance(source_review, dict):
             raise ValueError("expected a JSON object")
     except (OSError, UnicodeError, ValueError) as error:
         source_review = None
-        errors.append("source review missing or unreadable: {}".format(error))
+        errors.append("source review missing or unreadable ({})".format(type(error).__name__))
     contract = None
     if source_review is not None:
         try:
-            contract, _, _, contract_hash = load_contract(Path(source_review["contract"]))
+            contract_path = resolve_review_reference(source_review["contract"], source_review_path)
+            contract, _, _, contract_hash = load_contract(contract_path)
             if contract_hash != source_task["contract_sha256"]:
                 errors.append("source contract fingerprint mismatch")
         except (OSError, UnicodeError, ValueError, KeyError, TypeError) as error:
-            errors.append("contract missing or unreadable: {}".format(error))
+            errors.append("contract missing or unreadable ({})".format(type(error).__name__))
     if evidence is not None and evidence.get("status") != "pass":
         errors.append("source evidence is not pass")
     if source_review is not None and source_review.get("status") != "pass":
         errors.append("source review is not pass")
 
-    draft_path = Path(task["draft"])
     try:
         draft_bytes = draft_path.read_bytes()
         draft_content = draft_bytes.decode("utf-8")
@@ -152,7 +163,7 @@ def review_task(args):
     except (OSError, UnicodeError) as error:
         draft_content = None
         draft_hash = None
-        errors.append("draft {}: {}".format(draft_path, error))
+        errors.append("draft missing or unreadable ({})".format(type(error).__name__))
     if draft_content is not None and evidence is not None and contract is not None:
         check_draft(draft_content, task, source_task, evidence, contract, errors)
 
@@ -173,7 +184,7 @@ def review_task(args):
     task["status"] = "blocked" if errors else "ready"
     task["generated_draft_sha256"] = task["draft_sha256"]
     task["draft_sha256"] = draft_hash or "missing"
-    task["review"] = str(args.out)
+    task["review"] = task_reference(args.out, args.task)
     task["review_sha256"] = sha256(content)
     args.task.write_text(task_text(task, errors), encoding="utf-8")
     return 2 if errors else 0
@@ -183,7 +194,7 @@ def verify_draft_task(args):
     task = read_task(args.task)
     if task["status"] not in ("ready", "blocked"):
         raise ValueError("draft task has no completed review")
-    review_bytes = Path(task["review"]).read_bytes()
+    review_bytes = resolve_task_reference(task["review"], args.task).read_bytes()
     if sha256(review_bytes) != task["review_sha256"]:
         raise ValueError("review fingerprint mismatch")
     review = json.loads(review_bytes.decode("utf-8"))
@@ -195,12 +206,12 @@ def verify_draft_task(args):
     if review.get("draft_sha256") != task["draft_sha256"]:
         raise ValueError("draft review fingerprint differs from task")
     try:
-        current_draft_hash = sha256(Path(task["draft"]).read_bytes())
+        current_draft_hash = sha256(resolve_task_reference(task["draft"], args.task).read_bytes())
     except OSError:
         raise ValueError("draft fingerprint mismatch")
     if current_draft_hash != task["draft_sha256"]:
         raise ValueError("draft fingerprint mismatch")
-    source_path = Path(task["source_task"])
+    source_path = resolve_task_reference(task["source_task"], args.task)
     source_task = read_task(source_path)
     if source_task["status"] != "ready":
         raise ValueError("source task is not ready")
