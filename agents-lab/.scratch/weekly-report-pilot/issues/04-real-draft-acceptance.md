@@ -6,7 +6,7 @@
 
 **Category:** enhancement
 
-**Status:** ready-for-agent
+**Status:** needs-info
 
 **State:** open
 
@@ -18,3 +18,4 @@
 ## Comments
 
 - 2026-11-03：用户指示跳过当前范围内的 Ticket 03 验证并完成合成数据阶段。本票仍为真实数据工作，保持 `open` 且受 Ticket 03 阻塞；不得把合成 Ticket 10 的完成当作本票完成。
+- 2026-11-03：根据 issue-tracker 选票规则，将 triage 从 `ready-for-agent` 调整为 `needs-info`；Ticket 03 仍为 open/needs-info，故本票尚不可执行。Ticket 04 保持 open，待 Ticket 03 的外部前置条件满足后再重新分诊。
