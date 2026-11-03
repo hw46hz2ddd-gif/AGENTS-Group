@@ -40,7 +40,7 @@ def metric_rows(lines, errors):
             errors.append("line {}: metric row must have five columns".format(number))
             continue
         if columns[0] in rows:
-            errors.append("line {}: repeated metric {}".format(number, columns[0]))
+            errors.append("line {}: repeated metric row".format(number))
         rows[columns[0]] = (columns, number)
     return rows
 
@@ -64,7 +64,7 @@ def check_draft(content, task, source_task, evidence, contract, errors):
         if name not in metadata:
             errors.append("missing {} in draft".format(name))
         elif metadata[name][0] != expected:
-            errors.append("line {}: {} is {!r}; expected {!r}".format(metadata[name][1], name, metadata[name][0], expected))
+            errors.append("line {}: {} differs from source task".format(metadata[name][1], name))
 
     rows = metric_rows(lines, errors)
     recorded_inputs = {item["path"]: item["sha256"] for item in evidence["inputs"]}
@@ -86,9 +86,12 @@ def check_draft(content, task, source_task, evidence, contract, errors):
         )
         for label, actual, wanted in zip(("metric", "value", "unit", "source", "source fingerprint"), columns, expected):
             if actual != wanted:
-                errors.append("line {}: {} {} is {!r}; expected {!r}".format(number, metric, label, actual, wanted))
+                if label == "value" and re.fullmatch(r"-?\d+", actual) and re.fullmatch(r"-?\d+", wanted):
+                    errors.append("line {}: {} value is {}; expected {}".format(number, metric, actual, wanted))
+                else:
+                    errors.append("line {}: {} {} differs from expected".format(number, metric, label))
     for extra in sorted(set(rows) - expected_metrics):
-        errors.append("line {}: unexpected metric {}".format(rows[extra][1], extra))
+        errors.append("line {}: unexpected metric row".format(rows[extra][1]))
     known_fields = ("来源任务：", "证据文件：", "证据 SHA-256：", "口径版本：", "口径 SHA-256：", "上周产量：", "产量环比：")
     for number, line in enumerate(lines, start=1):
         if number == 1 or line.startswith("|") or line.startswith(known_fields):
@@ -116,16 +119,16 @@ def review_task(args):
         errors.append("source task verification failed ({})".format(type(error).__name__))
     if task.get("source_task_id") != source_task["id"] or task["period"] != source_task["period"]:
         errors.append("draft task identity differs from source task")
+    source_evidence_path = resolve_task_reference(source_task["evidence"], source_path)
+    source_task["evidence"] = task_reference(source_evidence_path, source_path)
     draft_evidence = resolve_task_reference(task["evidence"], args.task)
-    source_evidence = resolve_task_reference(source_task["evidence"], source_path)
-    if draft_evidence.resolve() != source_evidence.resolve() or task.get("evidence_sha256") != source_task.get("evidence_sha256"):
+    if draft_evidence.resolve() != source_evidence_path.resolve() or task.get("evidence_sha256") != source_task.get("evidence_sha256"):
         errors.append("draft task evidence reference differs from source task")
     if task.get("contract_sha256") != source_task.get("contract_sha256"):
         errors.append("draft task contract fingerprint differs from source task")
 
     try:
-        evidence_path = resolve_task_reference(source_task["evidence"], source_path)
-        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+        evidence = json.loads(source_evidence_path.read_text(encoding="utf-8"))
         if not isinstance(evidence, dict):
             raise ValueError("expected a JSON object")
     except (OSError, UnicodeError, ValueError) as error:

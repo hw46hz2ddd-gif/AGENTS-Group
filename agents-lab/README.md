@@ -48,6 +48,8 @@ git log -p -- "tasks/$run_id.md"
 
 Generated task links are relative to the task record. The review stores repository files as `project:` references and external local files relative to the review artifact. `verify` resolves those references and supports earlier task records. Review errors are copied from deterministic validation only when the evidence matches the current inputs, so edited evidence cannot inject raw values into task text.
 
+Older tasks with absolute artifact links remain readable. Draft creation normalizes those links before writing new draft content and task records.
+
 ## Synthetic draft and independent review on Mac
 
 Use a source task whose status is `ready`; the writer also verifies its local evidence before drafting. The committed demo source task below needs its Git-ignored local evidence. On a new checkout, first run the source workflow above and substitute the new source task path. Run the writer and reviewer steps in separate Codex sessions using `docs/agents/demo-writer.md` and `docs/agents/demo-reviewer.md`. The commands below show the handoff in one shell; use a fresh ID on each run:

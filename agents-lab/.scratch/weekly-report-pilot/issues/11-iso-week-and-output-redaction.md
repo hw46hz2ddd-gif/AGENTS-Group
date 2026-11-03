@@ -11,7 +11,7 @@
 **State:** closed
 
 - [x] Reject a contract whose `start_date` or `end_date` does not match the Monday/Sunday of its declared ISO week.
-- [x] Keep duplicate-key and out-of-period diagnostics useful by file and row while omitting the raw key and source date.
+- [x] Keep diagnostics useful by file and row while omitting raw keys, row dates, absolute references, and arbitrary path text copied from tampered evidence or draft metadata.
 - [x] Store verifiable local artifact references without absolute filesystem paths in review JSON and task records.
 - [x] Add CLI regression cases and document the synthetic-only behavior.
 - [x] Preserve Ticket 03 as `needs-info`; do not access real inputs.
@@ -25,7 +25,7 @@
 
 - Focused validator and source-audit regression cases passed after first failing against the prior implementation.
 - Missing evidence/draft and validator-failure cases first exposed absolute paths in failure diagnostics; those cases pass after sanitizing serialized errors.
-- `python3 -m unittest discover -s tests -v`: 54 tests passed.
+- `python3 -m unittest discover -s tests -v`: 56 tests passed.
 - W44 demo validator: exit 0, `status: pass`, `output_qty=30`, `case_count=1`, no errors.
 - `python3 scripts/codex_check.py` and `git diff --check`: passed.
 - `Ticket 03` remains `needs-info`; no real input was read.

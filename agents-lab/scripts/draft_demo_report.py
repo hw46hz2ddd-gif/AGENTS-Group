@@ -11,8 +11,8 @@ from types import SimpleNamespace
 from check_inputs import load_contract
 from report_task import task_text
 from source_audit import (
-    read_task, resolve_review_reference, resolve_task_reference, sha256,
-    task_reference, verify_task,
+    read_task, resolve_review_reference, resolve_task_reference,
+    review_reference, sha256, task_reference, verify_task,
 )
 
 
@@ -56,6 +56,7 @@ def create_draft(args):
         raise ValueError("source task is {}: ready source required".format(source_task["status"]))
     verify_task(SimpleNamespace(task=args.source_task))
     evidence_path = resolve_task_reference(source_task["evidence"], args.source_task)
+    source_task["evidence"] = task_reference(evidence_path, args.source_task)
     source_review_path = resolve_task_reference(source_task["review"], args.source_task)
     evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
     source_review = json.loads(source_review_path.read_text(encoding="utf-8"))
@@ -80,7 +81,7 @@ def create_draft(args):
         "source_task_id": source_task["id"],
         "evidence": task_reference(evidence_path, args.task),
         "evidence_sha256": source_task["evidence_sha256"],
-        "contract": source_review["contract"],
+        "contract": review_reference(contract_path, source_review_path),
         "contract_sha256": source_task["contract_sha256"],
         "draft": task_reference(args.draft, args.task),
         "draft_sha256": sha256(args.draft.read_bytes()),

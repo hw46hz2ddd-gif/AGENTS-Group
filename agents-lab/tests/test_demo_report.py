@@ -125,6 +125,26 @@ class DemoReportCliTests(unittest.TestCase):
         self.assertEqual(task_fields(self.draft_task)["status"], "working")
         self.assertNotIn(str(self.root), content)
 
+    def test_legacy_absolute_evidence_reference_is_redacted_from_draft(self):
+        self.source_run()
+        self.set_task_field(self.source_task, "evidence", self.evidence)
+        source_review = json.loads(self.source_review.read_text(encoding="utf-8"))
+        source_review["contract"] = str(CONTRACT)
+        source_review["input_dir"] = str(FIXTURES)
+        source_review_content = (json.dumps(source_review, indent=2, sort_keys=True) + "\n").encode("utf-8")
+        self.source_review.write_bytes(source_review_content)
+        self.set_task_field(self.source_task, "review_sha256", hashlib.sha256(source_review_content).hexdigest())
+
+        result = self.write_draft()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        content = self.draft.read_text(encoding="utf-8")
+        self.assertIn("证据文件：source-evidence.json", content)
+        self.assertNotIn(str(self.root), content)
+        self.assertNotIn(str(CONTRACT), content)
+        self.assertNotIn(str(CONTRACT), self.draft_task.read_text(encoding="utf-8"))
+        self.assertEqual(self.review_draft().returncode, 0)
+        self.assertNotIn(str(CONTRACT), self.draft_task.read_text(encoding="utf-8"))
+
     def test_consistent_draft_review_becomes_ready_but_not_accepted(self):
         self.source_run()
         self.assertEqual(self.write_draft().returncode, 0)
@@ -222,6 +242,22 @@ class DemoReportCliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2, result.stderr)
         outputs = self.draft_review.read_text(encoding="utf-8") + self.draft_task.read_text(encoding="utf-8")
         self.assertNotIn(str(self.root), outputs)
+
+    def test_absolute_path_in_draft_metadata_is_not_echoed_in_review_or_task(self):
+        self.source_run()
+        self.assertEqual(self.write_draft().returncode, 0)
+        content = self.draft.read_text(encoding="utf-8")
+        self.draft.write_text(
+            content.replace("证据文件：source-evidence.json", "证据文件：/private/tmp/SYNTHETIC-PRIVATE-PATH/evidence.json", 1),
+            encoding="utf-8",
+        )
+
+        result = self.review_draft()
+        self.assertEqual(result.returncode, 2, result.stderr)
+        outputs = self.draft_review.read_text(encoding="utf-8") + self.draft_task.read_text(encoding="utf-8")
+        self.assertNotIn("/private/tmp/SYNTHETIC-PRIVATE-PATH", outputs)
+        finding = json.loads(self.draft_review.read_text(encoding="utf-8"))
+        self.assertTrue(any("line 4" in error and "证据文件 differs" in error for error in finding["errors"]))
 
     def test_invented_previous_week_value_is_returned(self):
         self.source_run()
