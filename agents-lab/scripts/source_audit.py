@@ -4,6 +4,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -12,9 +13,54 @@ import tempfile
 
 from check_inputs import load_contract
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
 
 def sha256(content):
     return hashlib.sha256(content).hexdigest()
+
+
+def task_reference(path, task_path):
+    return Path(os.path.relpath(Path(path).resolve(), Path(task_path).resolve().parent)).as_posix()
+
+
+def review_reference(path, review_path):
+    resolved = Path(path).resolve()
+    try:
+        relative = resolved.relative_to(PROJECT_ROOT)
+    except ValueError:
+        return "relative:" + Path(os.path.relpath(resolved, Path(review_path).resolve().parent)).as_posix()
+    return "project:" + relative.as_posix()
+
+
+def resolve_task_reference(reference, task_path):
+    path = Path(reference)
+    if path.is_absolute():
+        return path
+    task_relative = Path(task_path).resolve().parent / path
+    if task_relative.exists():
+        return task_relative
+    project_relative = PROJECT_ROOT / path
+    if project_relative.exists():
+        return project_relative
+    return task_relative
+
+
+def resolve_review_reference(reference, review_path):
+    if reference.startswith("project:"):
+        return PROJECT_ROOT / reference[len("project:"):]
+    if reference.startswith("relative:"):
+        return Path(review_path).resolve().parent / reference[len("relative:"):]
+    path = Path(reference)
+    if path.is_absolute():
+        return path
+    review_relative = Path(review_path).resolve().parent / path
+    if review_relative.exists():
+        return review_relative
+    project_relative = PROJECT_ROOT / path
+    if project_relative.exists():
+        return project_relative
+    return path
 
 
 def task_text(task_id, period, status, links=None, errors=None):
@@ -66,7 +112,7 @@ def read_evidence(path, errors):
         content = path.read_bytes()
         evidence = json.loads(content.decode("utf-8"))
     except (OSError, UnicodeError, ValueError) as error:
-        errors.append("evidence {}: {}".format(path, error))
+        errors.append("evidence {}: unreadable ({})".format(path.name, type(error).__name__))
         return None, None
     if not isinstance(evidence, dict):
         errors.append("evidence must be a JSON object")
@@ -89,7 +135,7 @@ def regenerated_evidence(period, contract_path, input_dir, errors):
         return json.loads(out.read_text(encoding="utf-8"))
 
 
-def review_run(task, contract_path, input_dir, evidence_path):
+def review_run(task, contract_path, input_dir, evidence_path, review_path):
     errors = []
     evidence, evidence_hash = read_evidence(evidence_path, errors)
     try:
@@ -97,7 +143,7 @@ def review_run(task, contract_path, input_dir, evidence_path):
     except (OSError, UnicodeError, ValueError, TypeError, KeyError) as error:
         contract = None
         contract_hash = None
-        errors.append("contract {}: {}".format(contract_path, error))
+        errors.append("contract {}: invalid or unreadable ({})".format(contract_path.name, type(error).__name__))
 
     sources = []
     if evidence is not None:
@@ -113,15 +159,17 @@ def review_run(task, contract_path, input_dir, evidence_path):
             evidence_errors = []
         if evidence.get("status") == "blocked":
             errors.append("input validation blocked")
-            errors.extend("evidence: " + item for item in evidence_errors)
         elif evidence_errors:
             errors.append("evidence status pass contradicts nonempty errors")
         if evidence.get("status") == "pass" and not isinstance(evidence.get("metrics"), dict):
             errors.append("evidence pass requires metrics")
 
     if contract is not None and evidence is not None:
-        if evidence != regenerated_evidence(task["period"], contract_path, input_dir, errors):
+        regenerated = regenerated_evidence(task["period"], contract_path, input_dir, errors)
+        if evidence != regenerated:
             errors.append("evidence differs from deterministic validation")
+        elif evidence.get("status") == "blocked":
+            errors.extend("evidence: " + item for item in regenerated.get("errors", []))
         if evidence.get("contract_version") != contract["contract_version"]:
             errors.append("contract version differs from evidence")
         if evidence.get("contract_sha256") != contract_hash:
@@ -137,12 +185,12 @@ def review_run(task, contract_path, input_dir, evidence_path):
                 errors.append("evidence contains an invalid input entry")
                 continue
             if item["path"] in recorded:
-                errors.append("evidence repeats source " + item["path"])
+                errors.append("evidence repeats a source entry")
             recorded[item["path"]] = item.get("sha256")
 
         expected_names = {source["file"] for source in contract["sources"]}
-        for extra in sorted(set(recorded) - expected_names):
-            errors.append("evidence contains unexpected source " + extra)
+        if set(recorded) - expected_names:
+            errors.append("evidence contains unexpected source entries")
         for source in contract["sources"]:
             name = source["file"]
             expected_hash = recorded.get(name)
@@ -169,10 +217,10 @@ def review_run(task, contract_path, input_dir, evidence_path):
         "task_id": task["id"],
         "period": task["period"],
         "status": "blocked" if errors else "pass",
-        "contract": str(contract_path),
+        "contract": review_reference(contract_path, review_path),
         "contract_version": contract["contract_version"] if contract is not None else None,
         "contract_sha256": contract_hash,
-        "input_dir": str(input_dir),
+        "input_dir": review_reference(input_dir, review_path),
         "evidence_sha256": evidence_hash,
         "sources": sources,
         "errors": errors,
@@ -187,16 +235,16 @@ def finalize_task(args):
     if args.review.resolve() in (args.task.resolve(), args.evidence.resolve()):
         raise ValueError("review path must differ from task and evidence paths")
 
-    result = review_run(task, args.contract, args.input_dir, args.evidence)
+    result = review_run(task, args.contract, args.input_dir, args.evidence, args.review)
     content = (json.dumps(result, indent=2, sort_keys=True) + "\n").encode("utf-8")
     args.review.parent.mkdir(parents=True, exist_ok=True)
     with args.review.open("xb") as stream:
         stream.write(content)
 
     links = {
-        "evidence": str(args.evidence),
+        "evidence": task_reference(args.evidence, args.task),
         "evidence_sha256": result["evidence_sha256"] or "missing",
-        "review": str(args.review),
+        "review": task_reference(args.review, args.task),
         "review_sha256": sha256(content),
         "contract_version": result["contract_version"] or "unknown",
         "contract_sha256": result["contract_sha256"] or "missing",
@@ -212,7 +260,7 @@ def verify_task(args):
     task = read_task(args.task)
     if task["status"] not in ("ready", "blocked"):
         raise ValueError("task has no finalized source review")
-    review_path = Path(task["review"])
+    review_path = resolve_task_reference(task["review"], args.task)
     review_bytes = review_path.read_bytes()
     if sha256(review_bytes) != task["review_sha256"]:
         raise ValueError("review fingerprint mismatch")
@@ -225,25 +273,26 @@ def verify_task(args):
     if review.get("status") != expected_status:
         raise ValueError("task status contradicts review status")
     if task.get("evidence_sha256") == "missing":
-        if Path(task["evidence"]).exists() or review.get("evidence_sha256") is not None:
+        if resolve_task_reference(task["evidence"], args.task).exists() or review.get("evidence_sha256") is not None:
             raise ValueError("evidence fingerprint mismatch")
     else:
         try:
-            evidence_hash = sha256(Path(task["evidence"]).read_bytes())
+            evidence_hash = sha256(resolve_task_reference(task["evidence"], args.task).read_bytes())
         except OSError:
             raise ValueError("evidence fingerprint mismatch")
         if evidence_hash != task["evidence_sha256"] or evidence_hash != review.get("evidence_sha256"):
             raise ValueError("evidence fingerprint mismatch")
     if task.get("contract_sha256") != "missing":
         try:
-            contract_hash = sha256(Path(review["contract"]).read_bytes())
+            contract_hash = sha256(resolve_review_reference(review["contract"], review_path).read_bytes())
         except OSError:
             raise ValueError("contract fingerprint mismatch")
         if contract_hash != task["contract_sha256"] or contract_hash != review.get("contract_sha256"):
             raise ValueError("contract fingerprint mismatch")
     for source in review.get("sources", []):
         try:
-            observed_hash = sha256((Path(review["input_dir"]) / source["path"]).read_bytes())
+            input_dir = resolve_review_reference(review["input_dir"], review_path)
+            observed_hash = sha256((input_dir / source["path"]).read_bytes())
         except OSError:
             observed_hash = None
         if observed_hash != source.get("observed_sha256"):

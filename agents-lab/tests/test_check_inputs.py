@@ -46,7 +46,7 @@ class CheckInputsCliTests(unittest.TestCase):
             input_dir = Path(temp_dir) / "input"
             shutil.copytree(FIXTURES, input_dir)
             with (input_dir / "mes.csv").open("a", encoding="utf-8") as stream:
-                stream.write("2026-11-02,M-003,5\n")
+                stream.write("2026-11-02,SYNTHETIC-OUT-OF-WEEK,5\n")
             evidence_path = Path(temp_dir) / "evidence.json"
             result = subprocess.run(
                 [sys.executable, str(SCRIPT), "--period", "2026-W44", "--contract", str(CONTRACT), "--input-dir", str(input_dir), "--out", str(evidence_path)],
@@ -57,13 +57,17 @@ class CheckInputsCliTests(unittest.TestCase):
             evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
             self.assertEqual(evidence["status"], "blocked")
             self.assertTrue(any("mes.csv:4" in error and "outside" in error for error in evidence["errors"]))
+            serialized = json.dumps(evidence)
+            self.assertNotIn("2026-11-02", serialized)
+            self.assertNotIn("SYNTHETIC-OUT-OF-WEEK", serialized)
 
     def test_duplicate_record_id_blocks_evidence(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             input_dir = Path(temp_dir) / "input"
             shutil.copytree(FIXTURES, input_dir)
             with (input_dir / "mes.csv").open("a", encoding="utf-8") as stream:
-                stream.write("2026-10-28,M-001,5\n")
+                stream.write("2026-10-28,SYNTHETIC-DUPLICATE-KEY,5\n")
+                stream.write("2026-10-29,SYNTHETIC-DUPLICATE-KEY,6\n")
             evidence_path = Path(temp_dir) / "evidence.json"
             result = subprocess.run(
                 [sys.executable, str(SCRIPT), "--period", "2026-W44", "--contract", str(CONTRACT), "--input-dir", str(input_dir), "--out", str(evidence_path)],
@@ -73,7 +77,8 @@ class CheckInputsCliTests(unittest.TestCase):
             self.assertEqual(result.returncode, 2, result.stderr)
             evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
             self.assertEqual(evidence["status"], "blocked")
-            self.assertTrue(any("mes.csv:4" in error and "duplicate record_id" in error for error in evidence["errors"]))
+            self.assertTrue(any("mes.csv:5" in error and "duplicate record_id" in error for error in evidence["errors"]))
+            self.assertNotIn("SYNTHETIC-DUPLICATE-KEY", json.dumps(evidence))
 
     def test_empty_record_id_blocks_evidence(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -179,6 +184,30 @@ class CheckInputsCliTests(unittest.TestCase):
             evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
             self.assertEqual(evidence["status"], "blocked")
             self.assertTrue(any("2026-W43" in error and "2026-W44" in error for error in evidence["errors"]))
+
+    def test_contract_dates_must_match_declared_iso_week(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
+            contract["start_date"] = "2026-10-19"
+            contract["end_date"] = "2026-10-25"
+            contract_path = root / "misaligned-contract.json"
+            contract_path.write_text(json.dumps(contract), encoding="utf-8")
+            evidence_path = root / "evidence.json"
+
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), "--period", "2026-W44", "--contract", str(contract_path), "--input-dir", str(FIXTURES), "--out", str(evidence_path)],
+                cwd=str(ROOT), capture_output=True, text=True,
+            )
+
+            self.assertEqual(result.returncode, 2, result.stderr)
+            evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+            self.assertEqual(evidence["status"], "blocked")
+            self.assertEqual(evidence["metrics"], {})
+            self.assertTrue(any("do not match the declared ISO week" in error for error in evidence["errors"]))
+            serialized = json.dumps(evidence)
+            self.assertNotIn("2026-10-19", serialized)
+            self.assertNotIn("2026-10-25", serialized)
 
     def test_fractional_count_is_not_silently_truncated(self):
         with tempfile.TemporaryDirectory() as temp_dir:

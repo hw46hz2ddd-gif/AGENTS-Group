@@ -120,9 +120,10 @@ class DemoReportCliTests(unittest.TestCase):
         self.assertIn("| case_count | 1 | cases | ai_ehs.csv |", content)
         self.assertIn("上周产量：—", content)
         self.assertIn("产量环比：—", content)
-        self.assertIn("证据文件：{}".format(self.evidence), content)
+        self.assertIn("证据文件：source-evidence.json", content)
         self.assertIn("证据 SHA-256：{}".format(hashlib.sha256(self.evidence.read_bytes()).hexdigest()), content)
         self.assertEqual(task_fields(self.draft_task)["status"], "working")
+        self.assertNotIn(str(self.root), content)
 
     def test_consistent_draft_review_becomes_ready_but_not_accepted(self):
         self.source_run()
@@ -252,6 +253,8 @@ class DemoReportCliTests(unittest.TestCase):
         self.assertEqual(fields["draft_sha256"], hashlib.sha256(self.draft.read_bytes()).hexdigest())
         self.assertEqual(fields["evidence_sha256"], hashlib.sha256(self.evidence.read_bytes()).hexdigest())
         self.assertEqual(task_fields(self.draft_task)["status"], "ready")
+        for artifact in (self.source_task, self.source_review, self.evidence, self.draft, self.draft_task, self.draft_review, record):
+            self.assertNotIn(str(self.root), artifact.read_text(encoding="utf-8"))
         self.assertEqual(self.verify_decision(record).returncode, 0)
 
     def test_returned_decision_requires_and_records_reason(self):
