@@ -4,7 +4,7 @@ This is a Mac-first Codex multi-agent pilot for a synthetic weekly report. The r
 
 ## Mac setup and structural check
 
-From the `agents-lab/` project directory (the subdirectory in `AGENTS-Group`):
+From the repository root:
 
 ```sh
 codex --version
@@ -64,7 +64,7 @@ The draft cites the exact evidence and source fingerprints. Missing historical v
 
 ## Human decision on a reviewed draft
 
-After a person reviews one specific `ready` draft and decides, `record_draft_decision.py record --draft-task PATH --decision {accepted,returned} --out PATH [--reason TEXT]` writes a separate, new decision task. Choose one decision explicitly; a `returned` decision needs a nonblank reason. Verify the record with `python3 scripts/record_draft_decision.py verify --record PATH`. Verification rechecks the draft review and linked draft and evidence fingerprints. The original draft task remains `ready`; a decision record does not send or publish the report.
+After a person reviews one specific `ready` draft and decides, `record_draft_decision.py record --draft-task PATH --decision {accepted,returned} --out PATH [--reason TEXT]` writes a separate, new decision task. Choose one decision explicitly; a `returned` decision needs a nonblank reason. Before recording, the CLI rechecks the draft task plus draft, evidence, and review fingerprints after verification returns. Verify the record with `python3 scripts/record_draft_decision.py verify --record PATH`. Verification rechecks the draft review and linked draft and evidence fingerprints. The original draft task remains `ready`; a decision record does not send or publish the report.
 
 Ticket 10 exercises this gate with the synthetic `2026-W44` workflow. It does not create an acceptance record for the committed demo draft. Real historical-week data remains unavailable until the data owner approves the intake and handling rules described above.
 

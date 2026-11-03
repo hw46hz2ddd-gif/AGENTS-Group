@@ -13,6 +13,7 @@
 - [x] A decision can be recorded only for a `ready` draft whose review verification passes.
 - [x] `accepted` and `returned` are explicit decisions in a separate immutable task record; `returned` requires a nonblank reason.
 - [x] The record captures draft and evidence fingerprints; verification fails if either linked artifact changes.
+- [x] Recording rejects changes to the ready draft task, draft, evidence, or review that occur after review verification and before the decision is written.
 - [x] Existing draft tasks remain `ready` and unchanged; record creation never sends or publishes a report.
 - [x] The automated demonstration uses temporary synthetic artifacts and creates no acceptance record for the committed demo draft.
 
@@ -35,7 +36,7 @@
 
 ## Completion
 
-- `python3 tests/test_demo_report.py`: 22 tests passed, including the decision workflow.
-- `python3 -m unittest discover -s tests -v`: 44 tests passed.
+- `python3 tests/test_demo_report.py`: 25 tests passed, including the decision workflow and post-verification race cases.
+- `python3 -m unittest discover -s tests -v`: 47 tests passed.
 - `python3 scripts/codex_check.py`: passed.
 - `git diff --check`: passed.

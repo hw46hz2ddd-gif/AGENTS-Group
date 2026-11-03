@@ -6,9 +6,9 @@ Windows validation: deferred
 
 ## Current baseline
 
-- This project is the `agents-lab/` subdirectory of `hw46hz2ddd-gif/AGENTS-Group`; the parent repository owns Git history.
+- Local Git repository; no remote selected.
 - Mac: Codex CLI 0.166.0-alpha.5.1, Python 3.9.6, Git 2.54.0 (Apple Git-157).
-- Project guidance was initialized in the original standalone repository at `6f96ba9` and imported into the parent repository as a snapshot in PR #1.
+- Project guidance and a Python structural check are present and committed in `6f96ba9`.
 - The synthetic input validator, source review, Git-tracked task ledger, draft writer, and independent draft reviewer are available on Mac. The full agent roster and real data are not present.
 
 ## Next task
@@ -19,7 +19,7 @@ Tickets 01, 02, 05, 06, 07, 08, 09, and 10 are closed. Ticket 05 completed a Mac
 - [ ] **Ticket 04 — real draft acceptance:** remains open and blocked by Ticket 03; Ticket 02 is already closed. Start only after Ticket 03 is complete. Human acceptance must remain an explicit decision on a specific draft version.
 - [ ] **Windows validation — deferred:** the user is arranging this separately. Report only Mac verification until Windows is actually tested.
 
-Ticket 06 rejects empty and whitespace-only keys with a file, row, and column diagnostic. Ticket 07 rejects duplicate CSV headers before row values are interpreted. Ticket 08 requires each metric source to define a non-empty string unit. Ticket 09 rejects duplicate metric names in a contract, preventing aggregate overwrite. Ticket 10 adds explicit accepted/returned decisions for reviewed synthetic drafts, with draft and evidence fingerprint verification. The Mac suite passed with 44 tests. No open ticket is currently executable: Ticket 03 still requires the approved historical-week intake, Ticket 04 remains blocked by Ticket 03, and Windows validation is separately deferred. Do not treat Ticket 10 or recurring scheduling as unblocking Ticket 04.
+Ticket 06 rejects empty and whitespace-only keys with a file, row, and column diagnostic. Ticket 07 rejects duplicate CSV headers before row values are interpreted. Ticket 08 requires each metric source to define a non-empty string unit. Ticket 09 rejects duplicate metric names in a contract, preventing aggregate overwrite. Ticket 10 adds explicit accepted/returned decisions for reviewed synthetic drafts, with draft and evidence fingerprint verification and post-verification race checks. The Mac suite passed with 47 tests. No open ticket is currently executable: Ticket 03 still requires the approved historical-week intake, Ticket 04 remains blocked by Ticket 03, and Windows validation is separately deferred. Do not treat Ticket 10 or recurring scheduling as unblocking Ticket 04.
 
 ## Blockers
 
@@ -33,8 +33,6 @@ Ticket 06 rejects empty and whitespace-only keys with a file, row, and column di
 
 ## Verification
 
-- The historical short commit hashes in this section refer to the original standalone `agents-lab` repository; PR #1 imported its files as a snapshot, so those commits are not in the parent repository's history.
-- `python3 scripts/codex_check.py`: PASS from the `agents-lab/` subdirectory in the parent repository.
 - Template `./scripts/codex-check` before customization: FAIL because `CONTEXT.md` and `STATUS.md` still contained initialization placeholders.
 - `python3 scripts/codex_check.py`: PASS on Mac.
 - `./scripts/codex-check`: PASS on Mac.
@@ -69,3 +67,4 @@ Ticket 06 rejects empty and whitespace-only keys with a file, row, and column di
 - Ticket 08: `python3 tests/test_check_inputs.py CheckInputsCliTests.test_missing_or_invalid_metric_unit_blocks_evidence` first failed for missing, empty, whitespace-only, and non-string units; it passed after contract validation was tightened. Full Mac suite: `python3 -m unittest discover -s tests -v` — 31 tests passed.
 - Ticket 09: `python3 tests/test_check_inputs.py CheckInputsCliTests.test_duplicate_contract_metric_blocks_evidence` first failed because duplicate `output_qty` declarations exited `0`; it passed after duplicate metric validation. Full Mac suite: `python3 -m unittest discover -s tests -v` — 32 tests passed.
 - Ticket 10: `python3 tests/test_demo_report.py` — 22 tests passed. Full Mac suite: `python3 -m unittest discover -s tests -v` — 44 tests passed. `python3 scripts/codex_check.py` and `git diff --check` passed. The decision CLI verified temporary accepted/returned records and rejected invalid task/review states, evidence path mismatches, missing return reasons, overwritten paths, post-review edits, and changed artifacts.
+- Ticket 10 race hardening: three new regression cases first failed because decision recording accepted a task, evidence, or review changed immediately after verification. The CLI now rechecks the task snapshot and draft, evidence, and review fingerprints before writing. Focused race tests and the existing draft race test passed; final counts: 25 draft/decision tests and 47 full-suite tests, with `codex_check.py` and `git diff --check` passing.

@@ -28,11 +28,19 @@ def verified_ready_draft(path):
         raise ValueError("draft task is {}: ready draft required".format(task["status"]))
     with redirect_stdout(io.StringIO()):
         verify_draft_task(SimpleNamespace(task=path))
+    if read_task(path) != task:
+        raise ValueError("draft task changed during verification")
     source_task = read_task(Path(task["source_task"]))
+    if source_task["status"] != "ready":
+        raise ValueError("source task changed during verification")
+    if task.get("source_task_id") != source_task["id"] or task["period"] != source_task["period"]:
+        raise ValueError("draft task identity changed during verification")
     if task["evidence"] != source_task["evidence"]:
         raise ValueError("draft evidence path differs from source task")
     if task["evidence_sha256"] != source_task["evidence_sha256"]:
         raise ValueError("draft evidence fingerprint differs from source task")
+    if task["contract_sha256"] != source_task["contract_sha256"]:
+        raise ValueError("draft contract fingerprint differs from source task")
     return task
 
 
@@ -69,9 +77,14 @@ def record_decision(args):
 
     draft_path = Path(task["draft"])
     evidence_path = task["evidence"]
+    review_path = Path(task["review"])
     draft_hash = task["draft_sha256"]
     if sha256(draft_path.read_bytes()) != draft_hash:
         raise ValueError("draft fingerprint changed during verification")
+    if sha256(Path(evidence_path).read_bytes()) != task["evidence_sha256"]:
+        raise ValueError("evidence fingerprint changed during verification")
+    if sha256(review_path.read_bytes()) != task["review_sha256"]:
+        raise ValueError("review fingerprint changed during verification")
     fields = {
         "id": args.out.stem,
         "period": task["period"],
