@@ -451,6 +451,30 @@ class DemoReportCliTests(unittest.TestCase):
         self.assertIn("draft task changed during verification", error.getvalue())
         self.assertFalse(record.exists())
 
+    def test_evidence_changed_during_record_setup_is_not_accepted(self):
+        self.source_run()
+        self.assertEqual(self.write_draft().returncode, 0)
+        self.assertEqual(self.review_draft().returncode, 0)
+        record = self.root / "setup-race-decision.md"
+        module = self.load_decision_module()
+        real_mkdir = Path.mkdir
+
+        def mkdir_then_change_evidence(path, *args, **kwargs):
+            result = real_mkdir(path, *args, **kwargs)
+            if path == record.parent:
+                self.evidence.write_bytes(self.evidence.read_bytes() + b" ")
+            return result
+
+        with mock.patch.object(Path, "mkdir", new=mkdir_then_change_evidence):
+            with mock.patch.object(sys, "argv", [str(DECISION), "record", "--draft-task", str(self.draft_task), "--decision", "accepted", "--out", str(record)]):
+                error = io.StringIO()
+                with redirect_stderr(error):
+                    exit_code = module.main()
+
+        self.assertEqual(exit_code, 2, error.getvalue())
+        self.assertIn("evidence fingerprint", error.getvalue())
+        self.assertFalse(record.exists())
+
     def test_returned_record_with_empty_reason_section_does_not_verify(self):
         self.source_run()
         self.assertEqual(self.write_draft().returncode, 0)
