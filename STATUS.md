@@ -6,7 +6,8 @@ Last updated: 2026-11-03
 ## Current baseline
 
 - GitHub repository: `hw46hz2ddd-gif/AGENTS-Group`.
-- `main` is at merge commit `ddf4cd1` (PR #1); the tree contains the original root README and license plus `agents-lab/`.
+- PR #1 was merged as `ddf4cd118b290fca0e9352fbaed8d297ce17314f`, importing `agents-lab/` while preserving the original root README and license.
+- PR #2 was merged as `51fcbdd25ab94249b9197124834368f304a27502`, adding parent-repository guidance and structural checks.
 - `agents-lab/` contains the Mac-first synthetic weekly-report pilot and its own guidance, context, status, and ticket tracker.
 - Ticket 10's synthetic acceptance gate is implemented. The nested project's recorded Mac suite has 44 passing tests.
 - No real export was read. The committed demonstration uses synthetic fixtures only.
@@ -29,7 +30,7 @@ Do not treat the synthetic acceptance gate as completing Ticket 03 or unblocking
 
 ## Verification
 
-- GitHub API confirmed `main` at `ddf4cd118b290fca0e9352fbaed8d297ce17314f`; its tree matches the local integrated project snapshot.
+- GitHub confirmed the PR #1 and PR #2 merge commits recorded above.
 - PR #1's recorded checks: 44 nested unit tests passed, `python3 scripts/codex_check.py` passed, and `git diff --check` passed before integration.
 - `./scripts/codex-check`: PASS.
 - `python3 agents-lab/scripts/codex_check.py`: PASS after the checker was updated to recognize this initialized parent-repository layout.
