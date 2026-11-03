@@ -23,17 +23,27 @@ def read_decision(path):
 
 
 def verified_ready_draft(path):
-    task = read_task(path)
+    task_path = Path(path)
+    task_bytes = task_path.read_bytes()
+    task = read_task(task_path)
     if task["status"] != "ready":
         raise ValueError("draft task is {}: ready draft required".format(task["status"]))
     with redirect_stdout(io.StringIO()):
-        verify_draft_task(SimpleNamespace(task=path))
+        verify_draft_task(SimpleNamespace(task=task_path))
+    if task_path.read_bytes() != task_bytes:
+        raise ValueError("draft task changed during verification")
     source_task = read_task(Path(task["source_task"]))
+    if source_task["status"] != "ready":
+        raise ValueError("source task changed during verification")
+    if task.get("source_task_id") != source_task["id"] or task["period"] != source_task["period"]:
+        raise ValueError("draft task identity changed during verification")
     if task["evidence"] != source_task["evidence"]:
         raise ValueError("draft evidence path differs from source task")
     if task["evidence_sha256"] != source_task["evidence_sha256"]:
         raise ValueError("draft evidence fingerprint differs from source task")
-    return task
+    if task["contract_sha256"] != source_task["contract_sha256"]:
+        raise ValueError("draft contract fingerprint differs from source task")
+    return task, task_bytes
 
 
 def decision_text(fields, reason=None):
@@ -62,16 +72,15 @@ def record_decision(args):
         raise ValueError("decision record name must contain only letters, digits, dots, hyphens, or underscores")
     if args.out.exists():
         raise ValueError("decision record already exists: {}".format(args.out))
-    task = verified_ready_draft(args.draft_task)
+    task, task_bytes = verified_ready_draft(args.draft_task)
     reason = args.reason.strip() if args.reason is not None else None
     if args.decision == "returned" and not reason:
         raise ValueError("returned decisions require a nonblank reason")
 
     draft_path = Path(task["draft"])
     evidence_path = task["evidence"]
+    review_path = Path(task["review"])
     draft_hash = task["draft_sha256"]
-    if sha256(draft_path.read_bytes()) != draft_hash:
-        raise ValueError("draft fingerprint changed during verification")
     fields = {
         "id": args.out.stem,
         "period": task["period"],
@@ -85,6 +94,15 @@ def record_decision(args):
     }
     content = decision_text(fields, reason)
     args.out.parent.mkdir(parents=True, exist_ok=True)
+    # Recheck the verified snapshot immediately before opening the decision file.
+    if args.draft_task.read_bytes() != task_bytes:
+        raise ValueError("draft task changed during verification")
+    if sha256(draft_path.read_bytes()) != draft_hash:
+        raise ValueError("draft fingerprint changed during verification")
+    if sha256(Path(evidence_path).read_bytes()) != task["evidence_sha256"]:
+        raise ValueError("evidence fingerprint changed during verification")
+    if sha256(review_path.read_bytes()) != task["review_sha256"]:
+        raise ValueError("review fingerprint changed during verification")
     try:
         with args.out.open("x", encoding="utf-8") as stream:
             stream.write(content)
@@ -104,7 +122,7 @@ def verify_decision(args):
         raise ValueError("returned decision record requires a nonblank reason")
 
     draft_task_path = Path(record["draft_task"])
-    task = verified_ready_draft(draft_task_path)
+    task, _ = verified_ready_draft(draft_task_path)
     if record["draft_task_id"] != task["id"] or record["period"] != task["period"]:
         raise ValueError("decision record draft identity mismatch")
     if record["draft_sha256"] != task["draft_sha256"]:

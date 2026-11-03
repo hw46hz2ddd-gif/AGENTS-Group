@@ -96,8 +96,9 @@
 
 ## Final review fix pass
 
-- Add regression coverage for a draft-task evidence path that differs from its verified source, a draft edited immediately after verification, a returned record with an empty reason section followed by another heading, and a `ready` draft whose review artifact no longer verifies.
+- Add regression coverage for a draft-task evidence path that differs from its verified source, a draft edited immediately after verification, evidence or review artifacts changed after verification, frontmatter or body of a draft task changed after verification, a returned record with an empty reason section followed by another heading, and a `ready` draft whose review artifact no longer verifies.
 - Make decision recording use the fingerprint from the verified task snapshot and reject artifact identity mismatches.
+- Recheck the draft task snapshot and draft, evidence, and review fingerprints immediately before opening the decision file.
 - Parse only the standalone `## Reason` section up to the next Markdown heading.
 - Mark Ticket 10 `State: closed` and refresh the documented test counts after the fix pass.
-- Fix pass verification: 22 draft/decision tests and 44 full-suite tests pass; `codex_check.py` and `git diff --check` pass.
+- Fix pass verification: 27 draft/decision tests and 49 full-suite tests pass; `codex_check.py` and `git diff --check` pass.

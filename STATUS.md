@@ -9,7 +9,7 @@ Last updated: 2026-11-03
 - PR #1 was merged as `ddf4cd118b290fca0e9352fbaed8d297ce17314f`, importing `agents-lab/` while preserving the original root README and license.
 - PR #2 was merged as `51fcbdd25ab94249b9197124834368f304a27502`, adding parent-repository guidance and structural checks.
 - `agents-lab/` contains the Mac-first synthetic weekly-report pilot and its own guidance, context, status, and ticket tracker.
-- Ticket 10's synthetic acceptance gate is implemented. The nested project's recorded Mac suite has 44 passing tests.
+- Ticket 10's synthetic acceptance gate is implemented. The nested project's Mac suite has 49 passing tests on the current branch.
 - No real export was read. The committed demonstration uses synthetic fixtures only.
 
 ## Next task

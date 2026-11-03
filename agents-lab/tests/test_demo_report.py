@@ -362,6 +362,119 @@ class DemoReportCliTests(unittest.TestCase):
         self.assertIn("draft fingerprint", error.getvalue())
         self.assertFalse(record.exists())
 
+    def test_evidence_changed_after_verification_is_not_accepted(self):
+        self.source_run()
+        self.assertEqual(self.write_draft().returncode, 0)
+        self.assertEqual(self.review_draft().returncode, 0)
+        record = self.root / "evidence-race-decision.md"
+        module = self.load_decision_module()
+        real_verify = module.verify_draft_task
+
+        def verify_then_change_evidence(args):
+            real_verify(args)
+            self.evidence.write_bytes(self.evidence.read_bytes() + b" ")
+
+        with mock.patch.object(module, "verify_draft_task", side_effect=verify_then_change_evidence):
+            with mock.patch.object(sys, "argv", [str(DECISION), "record", "--draft-task", str(self.draft_task), "--decision", "accepted", "--out", str(record)]):
+                error = io.StringIO()
+                with redirect_stderr(error):
+                    exit_code = module.main()
+
+        self.assertEqual(exit_code, 2, error.getvalue())
+        self.assertIn("evidence fingerprint", error.getvalue())
+        self.assertFalse(record.exists())
+
+    def test_review_changed_after_verification_is_not_accepted(self):
+        self.source_run()
+        self.assertEqual(self.write_draft().returncode, 0)
+        self.assertEqual(self.review_draft().returncode, 0)
+        record = self.root / "review-race-decision.md"
+        module = self.load_decision_module()
+        real_verify = module.verify_draft_task
+
+        def verify_then_change_review(args):
+            real_verify(args)
+            self.draft_review.write_bytes(self.draft_review.read_bytes() + b" ")
+
+        with mock.patch.object(module, "verify_draft_task", side_effect=verify_then_change_review):
+            with mock.patch.object(sys, "argv", [str(DECISION), "record", "--draft-task", str(self.draft_task), "--decision", "accepted", "--out", str(record)]):
+                error = io.StringIO()
+                with redirect_stderr(error):
+                    exit_code = module.main()
+
+        self.assertEqual(exit_code, 2, error.getvalue())
+        self.assertIn("review fingerprint", error.getvalue())
+        self.assertFalse(record.exists())
+
+    def test_draft_task_changed_after_verification_is_not_accepted(self):
+        self.source_run()
+        self.assertEqual(self.write_draft().returncode, 0)
+        self.assertEqual(self.review_draft().returncode, 0)
+        record = self.root / "task-race-decision.md"
+        module = self.load_decision_module()
+        real_verify = module.verify_draft_task
+
+        def verify_then_block_task(args):
+            real_verify(args)
+            self.set_task_field(self.draft_task, "status", "blocked")
+
+        with mock.patch.object(module, "verify_draft_task", side_effect=verify_then_block_task):
+            with mock.patch.object(sys, "argv", [str(DECISION), "record", "--draft-task", str(self.draft_task), "--decision", "accepted", "--out", str(record)]):
+                error = io.StringIO()
+                with redirect_stderr(error):
+                    exit_code = module.main()
+
+        self.assertEqual(exit_code, 2, error.getvalue())
+        self.assertIn("draft task changed during verification", error.getvalue())
+        self.assertFalse(record.exists())
+
+    def test_draft_task_body_changed_after_verification_is_not_accepted(self):
+        self.source_run()
+        self.assertEqual(self.write_draft().returncode, 0)
+        self.assertEqual(self.review_draft().returncode, 0)
+        record = self.root / "task-body-race-decision.md"
+        module = self.load_decision_module()
+        real_verify = module.verify_draft_task
+
+        def verify_then_edit_task_body(args):
+            real_verify(args)
+            with self.draft_task.open("a", encoding="utf-8") as stream:
+                stream.write("\n## Notes\nChanged after verification.\n")
+
+        with mock.patch.object(module, "verify_draft_task", side_effect=verify_then_edit_task_body):
+            with mock.patch.object(sys, "argv", [str(DECISION), "record", "--draft-task", str(self.draft_task), "--decision", "accepted", "--out", str(record)]):
+                error = io.StringIO()
+                with redirect_stderr(error):
+                    exit_code = module.main()
+
+        self.assertEqual(exit_code, 2, error.getvalue())
+        self.assertIn("draft task changed during verification", error.getvalue())
+        self.assertFalse(record.exists())
+
+    def test_evidence_changed_during_record_setup_is_not_accepted(self):
+        self.source_run()
+        self.assertEqual(self.write_draft().returncode, 0)
+        self.assertEqual(self.review_draft().returncode, 0)
+        record = self.root / "setup-race-decision.md"
+        module = self.load_decision_module()
+        real_mkdir = Path.mkdir
+
+        def mkdir_then_change_evidence(path, *args, **kwargs):
+            result = real_mkdir(path, *args, **kwargs)
+            if path == record.parent:
+                self.evidence.write_bytes(self.evidence.read_bytes() + b" ")
+            return result
+
+        with mock.patch.object(Path, "mkdir", new=mkdir_then_change_evidence):
+            with mock.patch.object(sys, "argv", [str(DECISION), "record", "--draft-task", str(self.draft_task), "--decision", "accepted", "--out", str(record)]):
+                error = io.StringIO()
+                with redirect_stderr(error):
+                    exit_code = module.main()
+
+        self.assertEqual(exit_code, 2, error.getvalue())
+        self.assertIn("evidence fingerprint", error.getvalue())
+        self.assertFalse(record.exists())
+
     def test_returned_record_with_empty_reason_section_does_not_verify(self):
         self.source_run()
         self.assertEqual(self.write_draft().returncode, 0)
