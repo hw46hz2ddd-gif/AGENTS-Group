@@ -6,9 +6,9 @@ Windows validation: deferred
 
 ## Current baseline
 
-- Local Git repository; no remote selected.
+- This project is the `agents-lab/` subdirectory of `hw46hz2ddd-gif/AGENTS-Group`; the parent repository owns Git history.
 - Mac: Codex CLI 0.166.0-alpha.5.1, Python 3.9.6, Git 2.54.0 (Apple Git-157).
-- Project guidance and a Python structural check are present and committed in `6f96ba9`.
+- Project guidance was initialized in the original standalone repository at `6f96ba9` and imported into the parent repository as a snapshot in PR #1.
 - The synthetic input validator, source review, Git-tracked task ledger, draft writer, and independent draft reviewer are available on Mac. The full agent roster and real data are not present.
 
 ## Next task
@@ -33,6 +33,8 @@ Ticket 06 rejects empty and whitespace-only keys with a file, row, and column di
 
 ## Verification
 
+- The historical short commit hashes in this section refer to the original standalone `agents-lab` repository; PR #1 imported its files as a snapshot, so those commits are not in the parent repository's history.
+- `python3 scripts/codex_check.py`: PASS from the `agents-lab/` subdirectory in the parent repository.
 - Template `./scripts/codex-check` before customization: FAIL because `CONTEXT.md` and `STATUS.md` still contained initialization placeholders.
 - `python3 scripts/codex_check.py`: PASS on Mac.
 - `./scripts/codex-check`: PASS on Mac.
