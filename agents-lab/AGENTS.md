@@ -18,7 +18,7 @@ The user-level Codex working agreements still apply. This file contains only rul
 
 ## Verification
 
-- After changing project guidance or status, run `scripts/codex_check.py` with the local Python 3 interpreter. On this Mac, use `python3 scripts/codex_check.py`.
+- After changing project guidance or status, run `scripts/codex_check.py` with the local Python 3 interpreter. It supports a standalone checkout and this project under an initialized parent repository. On this Mac, use `python3 scripts/codex_check.py` from `agents-lab/`.
 - Use the verification commands that actually exist in the repository. Add feature-specific checks to `README.md` when those features are implemented.
 - Record current progress, blockers, and the next issue in `STATUS.md`.
 

@@ -52,8 +52,17 @@ def main() -> int:
             stderr=subprocess.PIPE,
             text=True,
         )
-        if Path(result.stdout.strip()).resolve() != ROOT:
-            errors.append("Git root differs from project root")
+        git_root = Path(result.stdout.strip()).resolve()
+        integrated_subproject = (
+            ROOT.name == "agents-lab"
+            and ROOT.parent == git_root
+            and all(
+                (git_root / name).is_file()
+                for name in ("AGENTS.md", "CONTEXT.md", "STATUS.md")
+            )
+        )
+        if git_root != ROOT and not integrated_subproject:
+            errors.append("Git root differs from project root or initialized parent")
     except (OSError, subprocess.CalledProcessError):
         errors.append("project root is not a Git repository")
 

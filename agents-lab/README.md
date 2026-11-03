@@ -4,7 +4,7 @@ This is a Mac-first Codex multi-agent pilot for a synthetic weekly report. The r
 
 ## Mac setup and structural check
 
-From the repository root:
+From the `agents-lab/` project directory (the subdirectory in `AGENTS-Group`):
 
 ```sh
 codex --version

@@ -1,0 +1,38 @@
+#!/bin/sh
+
+set -eu
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+project_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
+cd "$project_root"
+
+errors=0
+
+require_file() {
+  if [ ! -f "$1" ]; then
+    echo "codex-check: missing $1" >&2
+    errors=1
+  fi
+}
+
+require_file "AGENTS.md"
+require_file "CONTEXT.md"
+require_file "STATUS.md"
+require_file "issues/README.md"
+
+if [ -f "CONTEXT.md" ] && grep -Eq '\[Fill|<!-- Fill' "CONTEXT.md"; then
+  echo "codex-check: CONTEXT.md still contains initialization placeholders" >&2
+  errors=1
+fi
+
+if [ -f "STATUS.md" ] && grep -Eq 'Status: initializing|YYYY-MM-DD|Run `project-init`|Not run\.' "STATUS.md"; then
+  echo "codex-check: STATUS.md still contains initialization placeholders" >&2
+  errors=1
+fi
+
+if [ "$errors" -ne 0 ]; then
+  echo "codex-check: FAIL" >&2
+  exit 1
+fi
+
+echo "codex-check: PASS ($project_root)"
