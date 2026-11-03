@@ -1,0 +1,12 @@
+{
+  "period": "2026-W44",
+  "status": "pass",
+  "metrics": {
+    "output_qty": 30,
+    "case_count": 1
+  },
+  "rows": {
+    "mes.csv": 2,
+    "ai_ehs.csv": 2
+  }
+}
