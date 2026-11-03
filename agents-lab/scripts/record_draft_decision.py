@@ -10,7 +10,7 @@ import sys
 from types import SimpleNamespace
 
 from review_demo_report import verify_draft_task
-from source_audit import read_task, sha256
+from source_audit import read_task, resolve_task_reference, sha256, task_reference
 
 
 def read_decision(path):
@@ -32,12 +32,15 @@ def verified_ready_draft(path):
         verify_draft_task(SimpleNamespace(task=task_path))
     if task_path.read_bytes() != task_bytes:
         raise ValueError("draft task changed during verification")
-    source_task = read_task(Path(task["source_task"]))
+    source_task_path = resolve_task_reference(task["source_task"], task_path)
+    source_task = read_task(source_task_path)
     if source_task["status"] != "ready":
         raise ValueError("source task changed during verification")
     if task.get("source_task_id") != source_task["id"] or task["period"] != source_task["period"]:
         raise ValueError("draft task identity changed during verification")
-    if task["evidence"] != source_task["evidence"]:
+    draft_evidence = resolve_task_reference(task["evidence"], task_path).resolve()
+    source_evidence = resolve_task_reference(source_task["evidence"], source_task_path).resolve()
+    if draft_evidence != source_evidence:
         raise ValueError("draft evidence path differs from source task")
     if task["evidence_sha256"] != source_task["evidence_sha256"]:
         raise ValueError("draft evidence fingerprint differs from source task")
@@ -77,19 +80,19 @@ def record_decision(args):
     if args.decision == "returned" and not reason:
         raise ValueError("returned decisions require a nonblank reason")
 
-    draft_path = Path(task["draft"])
-    evidence_path = task["evidence"]
-    review_path = Path(task["review"])
+    draft_path = resolve_task_reference(task["draft"], args.draft_task)
+    evidence_path = resolve_task_reference(task["evidence"], args.draft_task)
+    review_path = resolve_task_reference(task["review"], args.draft_task)
     draft_hash = task["draft_sha256"]
     fields = {
         "id": args.out.stem,
         "period": task["period"],
         "status": "decided",
         "decision": args.decision,
-        "draft_task": str(args.draft_task),
+        "draft_task": task_reference(args.draft_task, args.out),
         "draft_task_id": task["id"],
         "draft_sha256": draft_hash,
-        "evidence": evidence_path,
+        "evidence": task_reference(evidence_path, args.out),
         "evidence_sha256": task["evidence_sha256"],
     }
     content = decision_text(fields, reason)
@@ -99,7 +102,7 @@ def record_decision(args):
         raise ValueError("draft task changed during verification")
     if sha256(draft_path.read_bytes()) != draft_hash:
         raise ValueError("draft fingerprint changed during verification")
-    if sha256(Path(evidence_path).read_bytes()) != task["evidence_sha256"]:
+    if sha256(evidence_path.read_bytes()) != task["evidence_sha256"]:
         raise ValueError("evidence fingerprint changed during verification")
     if sha256(review_path.read_bytes()) != task["review_sha256"]:
         raise ValueError("review fingerprint changed during verification")
@@ -108,7 +111,7 @@ def record_decision(args):
             stream.write(content)
     except FileExistsError:
         raise ValueError("decision record already exists: {}".format(args.out))
-    print("decision record {}: {}".format(args.out, args.decision))
+    print("decision record {}: {}".format(args.out.name, args.decision))
     return 0
 
 
@@ -121,13 +124,15 @@ def verify_decision(args):
     if record["decision"] == "returned" and not decision_reason(body):
         raise ValueError("returned decision record requires a nonblank reason")
 
-    draft_task_path = Path(record["draft_task"])
+    draft_task_path = resolve_task_reference(record["draft_task"], args.record)
     task, _ = verified_ready_draft(draft_task_path)
     if record["draft_task_id"] != task["id"] or record["period"] != task["period"]:
         raise ValueError("decision record draft identity mismatch")
     if record["draft_sha256"] != task["draft_sha256"]:
         raise ValueError("decision record draft fingerprint mismatch")
-    if record["evidence"] != task["evidence"] or record["evidence_sha256"] != task["evidence_sha256"]:
+    record_evidence = resolve_task_reference(record["evidence"], args.record).resolve()
+    task_evidence = resolve_task_reference(task["evidence"], draft_task_path).resolve()
+    if record_evidence != task_evidence or record["evidence_sha256"] != task["evidence_sha256"]:
         raise ValueError("decision record evidence fingerprint mismatch")
     print("decision {}: {} (draft and evidence verified)".format(record["id"], record["decision"]))
     return 0

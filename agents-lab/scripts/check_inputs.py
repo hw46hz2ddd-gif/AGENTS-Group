@@ -9,6 +9,7 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import re
 
 
 def write_evidence(path: Path, evidence: dict) -> None:
@@ -24,10 +25,23 @@ def load_contract(path: Path):
     for key in ("contract_version", "period", "start_date", "end_date"):
         if not isinstance(contract.get(key), str) or not contract[key]:
             raise ValueError("missing or invalid " + key)
-    start_date = date.fromisoformat(contract["start_date"])
-    end_date = date.fromisoformat(contract["end_date"])
+    try:
+        start_date = date.fromisoformat(contract["start_date"])
+        end_date = date.fromisoformat(contract["end_date"])
+    except ValueError:
+        raise ValueError("start_date and end_date must be ISO dates")
     if start_date > end_date:
         raise ValueError("start_date is after end_date")
+    match = re.fullmatch(r"(\d{4})-W(\d{2})", contract["period"])
+    if match is None:
+        raise ValueError("period must be an ISO week in YYYY-Www form")
+    try:
+        expected_start = date.fromisocalendar(int(match.group(1)), int(match.group(2)), 1)
+        expected_end = date.fromisocalendar(int(match.group(1)), int(match.group(2)), 7)
+    except ValueError:
+        raise ValueError("period must be a valid ISO week")
+    if start_date != expected_start or end_date != expected_end:
+        raise ValueError("start_date and end_date do not match the declared ISO week")
     sources = contract.get("sources")
     if not isinstance(sources, list) or not sources:
         raise ValueError("sources must be a non-empty list")
@@ -123,7 +137,7 @@ def main() -> int:
                 errors.append("{}:{}: blank key {}".format(source["file"], line_number, source["key_column"]))
             else:
                 if record_id in seen_keys:
-                    errors.append("{}:{}: duplicate record_id {}".format(source["file"], line_number, record_id))
+                    errors.append("{}:{}: duplicate record_id".format(source["file"], line_number))
                 seen_keys.add(record_id)
             try:
                 row_date = date.fromisoformat(row[source["date_column"]])
@@ -131,7 +145,7 @@ def main() -> int:
                 errors.append("{}:{}: invalid date".format(source["file"], line_number))
                 continue
             if not start_date <= row_date <= end_date:
-                errors.append("{}:{}: date {} outside {}".format(source["file"], line_number, row_date, args.period))
+                errors.append("{}:{}: date outside requested period {}".format(source["file"], line_number, args.period))
             try:
                 value = Decimal(row[source["value_column"]])
             except (InvalidOperation, TypeError):

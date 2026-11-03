@@ -25,6 +25,8 @@ python3 scripts/check_inputs.py --period 2026-W44 --contract contracts/demo.v1.j
 
 The command exits `0` with `status: pass` for the fixed demo sample. An invalid input or contract exits `2` and writes `status: blocked` with locatable errors. The evidence includes the contract and source SHA-256 hashes, row counts, and aggregate metrics. It has no timestamp, so identical inputs produce identical output bytes. The generated evidence stays under the Git-ignored `runs/` directory.
 
+The contract's inclusive `start_date` and `end_date` must be the Monday and Sunday of its declared ISO week. Row-level diagnostics identify the source file and row but omit raw record keys and dates. Contract date errors also avoid echoing the supplied date value.
+
 ## Source review and task ledger on Mac
 
 For a fresh synthetic run in a macOS shell, create a tracked task before validating inputs. The generated ID prevents reuse of an immutable task:
@@ -43,6 +45,10 @@ git log -p -- "tasks/$run_id.md"
 ```
 
 `finalize` returns `0` for a `ready` task and `2` for a `blocked` task; both paths write a source-review file and update the task. A finalized task is immutable. Start a new task for a corrected run. Commit each state change to preserve who changed it and when. The task's artifact paths point to local files under `runs/`; verify them before downstream work.
+
+Generated task links are relative to the task record. The review stores repository files as `project:` references and external local files relative to the review artifact. `verify` resolves those references and supports earlier task records. Review errors are copied from deterministic validation only when the evidence matches the current inputs, so edited evidence cannot inject raw values into task text.
+
+Older tasks with absolute artifact links remain readable. Draft creation normalizes those links before writing new draft content and task records.
 
 ## Synthetic draft and independent review on Mac
 

@@ -10,7 +10,10 @@ from types import SimpleNamespace
 
 from check_inputs import load_contract
 from report_task import task_text
-from source_audit import read_task, sha256, verify_task
+from source_audit import (
+    read_task, resolve_review_reference, resolve_task_reference,
+    review_reference, sha256, task_reference, verify_task,
+)
 
 
 def draft_text(source_task, evidence, contract):
@@ -52,11 +55,15 @@ def create_draft(args):
     if source_task["status"] != "ready":
         raise ValueError("source task is {}: ready source required".format(source_task["status"]))
     verify_task(SimpleNamespace(task=args.source_task))
-    evidence = json.loads(Path(source_task["evidence"]).read_text(encoding="utf-8"))
-    source_review = json.loads(Path(source_task["review"]).read_text(encoding="utf-8"))
+    evidence_path = resolve_task_reference(source_task["evidence"], args.source_task)
+    source_task["evidence"] = task_reference(evidence_path, args.source_task)
+    source_review_path = resolve_task_reference(source_task["review"], args.source_task)
+    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    source_review = json.loads(source_review_path.read_text(encoding="utf-8"))
     if evidence.get("status") != "pass" or source_review.get("status") != "pass":
         raise ValueError("source task lacks passing evidence and source review")
-    contract, _, _, contract_hash = load_contract(Path(source_review["contract"]))
+    contract_path = resolve_review_reference(source_review["contract"], source_review_path)
+    contract, _, _, contract_hash = load_contract(contract_path)
     if contract_hash != source_task["contract_sha256"]:
         raise ValueError("contract fingerprint mismatch")
     if args.task.exists() or args.draft.exists():
@@ -70,13 +77,13 @@ def create_draft(args):
         "id": args.id,
         "period": source_task["period"],
         "status": "working",
-        "source_task": str(args.source_task),
+        "source_task": task_reference(args.source_task, args.task),
         "source_task_id": source_task["id"],
-        "evidence": source_task["evidence"],
+        "evidence": task_reference(evidence_path, args.task),
         "evidence_sha256": source_task["evidence_sha256"],
-        "contract": source_review["contract"],
+        "contract": review_reference(contract_path, source_review_path),
         "contract_sha256": source_task["contract_sha256"],
-        "draft": str(args.draft),
+        "draft": task_reference(args.draft, args.task),
         "draft_sha256": sha256(args.draft.read_bytes()),
     }
     args.task.parent.mkdir(parents=True, exist_ok=True)
