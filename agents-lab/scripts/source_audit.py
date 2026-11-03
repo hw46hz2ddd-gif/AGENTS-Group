@@ -130,7 +130,7 @@ def regenerated_evidence(period, contract_path, input_dir, errors):
         ]
         completed = subprocess.run(command, capture_output=True, text=True)
         if completed.returncode not in (0, 2) or not out.is_file():
-            errors.append("deterministic validation could not reproduce evidence: {}".format(completed.stderr.strip()))
+            errors.append("deterministic validation could not reproduce evidence (exit {})".format(completed.returncode))
             return None
         return json.loads(out.read_text(encoding="utf-8"))
 

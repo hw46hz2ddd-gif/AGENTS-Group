@@ -24,8 +24,10 @@
 ## Completion
 
 - Focused validator and source-audit regression cases passed after first failing against the prior implementation.
-- `python3 -m unittest discover -s tests -v`: 52 tests passed.
+- Missing evidence/draft and validator-failure cases first exposed absolute paths in failure diagnostics; those cases pass after sanitizing serialized errors.
+- `python3 -m unittest discover -s tests -v`: 54 tests passed.
 - W44 demo validator: exit 0, `status: pass`, `output_qty=30`, `case_count=1`, no errors.
+- `python3 scripts/codex_check.py` and `git diff --check`: passed.
 - `Ticket 03` remains `needs-info`; no real input was read.
 
 ## Comments

@@ -113,7 +113,7 @@ def review_task(args):
     try:
         verify_task(SimpleNamespace(task=source_path))
     except (OSError, UnicodeError, ValueError, KeyError, TypeError) as error:
-        errors.append("source task verification failed: {}".format(error))
+        errors.append("source task verification failed ({})".format(type(error).__name__))
     if task.get("source_task_id") != source_task["id"] or task["period"] != source_task["period"]:
         errors.append("draft task identity differs from source task")
     draft_evidence = resolve_task_reference(task["evidence"], args.task)
@@ -130,7 +130,7 @@ def review_task(args):
             raise ValueError("expected a JSON object")
     except (OSError, UnicodeError, ValueError) as error:
         evidence = None
-        errors.append("evidence missing or unreadable: {}".format(error))
+        errors.append("evidence missing or unreadable ({})".format(type(error).__name__))
     try:
         source_review_path = resolve_task_reference(source_task["review"], source_path)
         source_review = json.loads(source_review_path.read_text(encoding="utf-8"))
@@ -138,7 +138,7 @@ def review_task(args):
             raise ValueError("expected a JSON object")
     except (OSError, UnicodeError, ValueError) as error:
         source_review = None
-        errors.append("source review missing or unreadable: {}".format(error))
+        errors.append("source review missing or unreadable ({})".format(type(error).__name__))
     contract = None
     if source_review is not None:
         try:
@@ -147,7 +147,7 @@ def review_task(args):
             if contract_hash != source_task["contract_sha256"]:
                 errors.append("source contract fingerprint mismatch")
         except (OSError, UnicodeError, ValueError, KeyError, TypeError) as error:
-            errors.append("contract missing or unreadable: {}".format(error))
+            errors.append("contract missing or unreadable ({})".format(type(error).__name__))
     if evidence is not None and evidence.get("status") != "pass":
         errors.append("source evidence is not pass")
     if source_review is not None and source_review.get("status") != "pass":
@@ -160,7 +160,7 @@ def review_task(args):
     except (OSError, UnicodeError) as error:
         draft_content = None
         draft_hash = None
-        errors.append("draft {}: {}".format(draft_path, error))
+        errors.append("draft missing or unreadable ({})".format(type(error).__name__))
     if draft_content is not None and evidence is not None and contract is not None:
         check_draft(draft_content, task, source_task, evidence, contract, errors)
 

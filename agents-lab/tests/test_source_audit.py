@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -15,6 +16,11 @@ AUDIT = ROOT / "scripts" / "source_audit.py"
 VALIDATOR = ROOT / "scripts" / "check_inputs.py"
 CONTRACT = ROOT / "contracts" / "demo.v1.json"
 FIXTURES = ROOT / "fixtures" / "demo"
+sys.path.insert(0, str(ROOT / "scripts"))
+try:
+    import source_audit
+finally:
+    sys.path.remove(str(ROOT / "scripts"))
 
 
 def fields(path):
@@ -47,6 +53,17 @@ class SourceAuditCliTests(unittest.TestCase):
             AUDIT, "finalize", "--task", task, "--contract", contract,
             "--input-dir", input_dir, "--evidence", evidence, "--review", review,
         )
+
+    def test_validator_failure_does_not_echo_absolute_stderr(self):
+        errors = []
+        secret_path = "/private/tmp/SYNTHETIC-LOCAL-PATH/check_inputs.py"
+        completed = subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr=secret_path)
+        with mock.patch.object(source_audit.subprocess, "run", return_value=completed):
+            result = source_audit.regenerated_evidence("2026-W44", CONTRACT, FIXTURES, errors)
+
+        self.assertIsNone(result)
+        self.assertTrue(any("could not reproduce evidence" in error for error in errors))
+        self.assertNotIn(secret_path, " ".join(errors))
 
     def test_valid_run_moves_working_to_ready_with_verifiable_artifact_links(self):
         with tempfile.TemporaryDirectory() as temp_dir:

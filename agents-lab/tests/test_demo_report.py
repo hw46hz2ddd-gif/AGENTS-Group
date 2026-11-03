@@ -210,6 +210,18 @@ class DemoReportCliTests(unittest.TestCase):
         self.assertEqual(task_fields(self.draft_task)["status"], "blocked")
         finding = json.loads(self.draft_review.read_text(encoding="utf-8"))
         self.assertTrue(any("evidence" in error and "missing" in error for error in finding["errors"]))
+        outputs = self.draft_review.read_text(encoding="utf-8") + self.draft_task.read_text(encoding="utf-8")
+        self.assertNotIn(str(self.root), outputs)
+
+    def test_missing_draft_path_is_not_echoed_in_review_or_task(self):
+        self.source_run()
+        self.assertEqual(self.write_draft().returncode, 0)
+        self.draft.unlink()
+
+        result = self.review_draft()
+        self.assertEqual(result.returncode, 2, result.stderr)
+        outputs = self.draft_review.read_text(encoding="utf-8") + self.draft_task.read_text(encoding="utf-8")
+        self.assertNotIn(str(self.root), outputs)
 
     def test_invented_previous_week_value_is_returned(self):
         self.source_run()
