@@ -1,0 +1,27 @@
+{
+  "contract_version": "demo-v1",
+  "period": "2026-W44",
+  "timezone": "Asia/Shanghai",
+  "start_date": "2026-10-26",
+  "end_date": "2026-11-01",
+  "sources": [
+    {
+      "file": "mes.csv",
+      "required_columns": ["date", "record_id", "output_qty"],
+      "key_column": "record_id",
+      "date_column": "date",
+      "value_column": "output_qty",
+      "metric": "output_qty",
+      "unit": "pieces"
+    },
+    {
+      "file": "ai_ehs.csv",
+      "required_columns": ["date", "record_id", "case_count"],
+      "key_column": "record_id",
+      "date_column": "date",
+      "value_column": "case_count",
+      "metric": "case_count",
+      "unit": "cases"
+    }
+  ]
+}
