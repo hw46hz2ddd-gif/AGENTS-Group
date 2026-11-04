@@ -2,6 +2,10 @@
 
 状态：**未批准**。仓库内保留这份空白模板；填写时先复制到 Git 忽略的本地目录或数据所有者指定的位置。若位置在仓库内，写入前用 `git check-ignore -- <路径>` 确认它确实被忽略；否则放在仓库外。不把真实路径、人员信息或业务数值直接提交到 Git。本模板不授权读取任何导出。数据所有者确认所有必填项并批准指定版本后，才可开始第 03 票的真实数据核对。`contracts/demo.v1.json` 和旧实施计划中的指标、停线门槛及异常阈值均为演示或提议，不自动成为真实口径。
 
+机器可读清单使用 [`historical-week-intake.manifest.example.json`](historical-week-intake.manifest.example.json)。先复制该文件，并将已批准的本表副本与清单保存在同一个 Git 忽略的本机目录，例如 `inputs/historical-week/approval/`。清单的 `approval_record.path` 是相对清单所在目录的文件名；不得使用符号链接或跳出该目录。清单中的批准状态、人员、日期、周次、合约指纹、解析后的完整输入目录、精确源文件清单及处理规则必须对应同一份已批准材料。
+
+示例清单故意包含占位符和未批准值，不能直接用于运行。工具只接受 `approval_state: "approved"`、`user_processing_authorized: true`、`read_only: true`、`codex_visibility: "aggregates_only"`、`evidence_policy: "safe_metadata_and_aggregates"` 和 `external_sharing: false`。周次必须是有效 ISO 周，合约起止日期必须精确覆盖该周的星期一至星期日。输入目录必须只包含合约列出的普通文件；不得有额外文件、子目录或符号链接。验证器会检查清单的一致性和文件指纹，但不会以密码学方式确认签署人身份；仍须由人核验实际批准人、批准范围和本机路径。
+
 ## 1. 批准范围
 
 | 项目 | 数据所有者填写 |
@@ -72,3 +76,11 @@
 ## 6. 交接给实施者
 
 提供已批准副本及导出文件的**获准披露的本机路径或中性别名**，不在聊天中粘贴原始记录。若文件放在仓库内，写入前先确认目标被 Git 忽略。实施者先核对批准范围、文件版本及 Codex 可见级别；本地校验器的标准输出、错误输出和聊天摘要都必须遵守该级别，再把允许的核对证据写入 Git 忽略的 `runs/`。只有经批准的元数据进入 Git 任务账本。任一必填规则缺失时，保留第 03 票的 `needs-info` 状态。
+
+## 7. 清单字段说明与运行边界
+
+清单格式必须与示例文件的键名和类型完全一致。`scope.input_dir` 填批准输入目录的绝对解析路径；`sources` 对每个合约文件各列一项，并填写原始字节的 SHA-256。`approval_record.sha256`、`scope.contract_sha256`、每个源文件指纹和清单自身指纹也都按原始字节计算。格式或空白变化会改变指纹，需要重新核对。
+
+真实运行时，先完成并核对本表、批准的合约、清单及只含已批准源 CSV 的输入目录，然后把同一份清单显式传给 `check_inputs.py` 和 `source_audit.py finalize` 的 `--approval-manifest`。没有有效清单时，命令以状态码 `2` 阻断，并且不会在证据中写入源指纹、行数或汇总值。模拟运行继续使用 README 中的合成命令，模拟合约不得带 `--approval-manifest`。任何清单或源文件在验证后发生变化，都应按新运行重新核验。
+
+证据输出、source task 和 review 文件必须放在输入、fixture、合约、清单及批准记录目录之外；即使输出路径是受保护文件的硬链接别名也会被拒绝。把 `--out` 指向受保护文件或目录时，命令以状态码 `2` 退出，不会写入证据。source finalization 也会拒绝把 task、evidence 或 review 路径放进受保护位置。task 正文中的错误只来自本机重新生成的安全校验诊断，不会复制传入 evidence 里的任意错误文本或路径。

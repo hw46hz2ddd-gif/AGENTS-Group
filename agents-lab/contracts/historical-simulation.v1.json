@@ -1,0 +1,28 @@
+{
+  "contract_version": "historical-simulation-v1",
+  "period": "2026-W43",
+  "timezone": "Asia/Shanghai",
+  "start_date": "2026-10-19",
+  "end_date": "2026-10-25",
+  "simulation_only": true,
+  "sources": [
+    {
+      "file": "mes.csv",
+      "required_columns": ["date", "record_id", "output_qty"],
+      "key_column": "record_id",
+      "date_column": "date",
+      "value_column": "output_qty",
+      "metric": "output_qty",
+      "unit": "pieces"
+    },
+    {
+      "file": "ai_ehs.csv",
+      "required_columns": ["date", "record_id", "case_count"],
+      "key_column": "record_id",
+      "date_column": "date",
+      "value_column": "case_count",
+      "metric": "case_count",
+      "unit": "cases"
+    }
+  ]
+}

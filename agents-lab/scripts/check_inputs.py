@@ -8,13 +8,80 @@ from decimal import Decimal, InvalidOperation
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
-import re
+import stat
+import sys
+
+from intake_preflight import PreflightError, validate_preflight
 
 
 def write_evidence(path: Path, evidence: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def ensure_safe_evidence_path(
+    out_path, input_dir, contract_path, manifest_path, project_root, artifact_label="evidence",
+):
+    conflict = "{} output conflicts with protected input or approval artifacts".format(artifact_label)
+    try:
+        output = out_path.resolve(strict=False)
+        protected_dirs = [input_dir, project_root / "inputs", project_root / "fixtures"]
+        manifest_dirs = []
+        if manifest_path is not None:
+            manifest_dirs.extend((manifest_path.parent, manifest_path.resolve(strict=False).parent))
+        protected_dirs.extend(manifest_dirs)
+        resolved_dirs = [path.resolve(strict=False) for path in protected_dirs]
+    except (OSError, RuntimeError, ValueError):
+        raise PreflightError("evidence output path is unavailable")
+
+    if any(output == directory or directory in output.parents for directory in resolved_dirs):
+        raise PreflightError(conflict)
+
+    protected_files = [contract_path]
+    if manifest_path is not None:
+        protected_files.append(manifest_path)
+    for path in protected_files:
+        try:
+            if output == path.resolve(strict=False):
+                raise PreflightError(conflict)
+            if out_path.exists() and path.exists() and os.path.samefile(out_path, path):
+                raise PreflightError(conflict)
+        except PreflightError:
+            raise
+        except (OSError, RuntimeError, ValueError):
+            raise PreflightError("evidence output path is unavailable")
+
+    # The input and approval directories may contain hard links to files at
+    # other paths. Inspect regular-file metadata so writing evidence cannot
+    # mutate one of those protected artifacts through an alias.
+    scan_dirs = []
+    for directory in sorted(set(resolved_dirs), key=lambda path: len(path.parts)):
+        if not any(directory == parent or parent in directory.parents for parent in scan_dirs):
+            scan_dirs.append(directory)
+    for directory in scan_dirs:
+        if not directory.is_dir():
+            continue
+        for current, subdirectories, filenames in os.walk(str(directory), followlinks=False):
+            current_path = Path(current)
+            subdirectories[:] = [
+                name for name in subdirectories
+                if not (current_path / name).is_symlink()
+            ]
+            for filename in filenames:
+                candidate = current_path / filename
+                try:
+                    if not stat.S_ISREG(candidate.lstat().st_mode):
+                        continue
+                    if output == candidate.resolve(strict=False):
+                        raise PreflightError(conflict)
+                    if out_path.exists() and os.path.samefile(out_path, candidate):
+                        raise PreflightError(conflict)
+                except PreflightError:
+                    raise
+                except (OSError, RuntimeError, ValueError):
+                    continue
 
 
 def load_contract(path: Path):
@@ -25,23 +92,10 @@ def load_contract(path: Path):
     for key in ("contract_version", "period", "start_date", "end_date"):
         if not isinstance(contract.get(key), str) or not contract[key]:
             raise ValueError("missing or invalid " + key)
-    try:
-        start_date = date.fromisoformat(contract["start_date"])
-        end_date = date.fromisoformat(contract["end_date"])
-    except ValueError:
-        raise ValueError("start_date and end_date must be ISO dates")
+    start_date = date.fromisoformat(contract["start_date"])
+    end_date = date.fromisoformat(contract["end_date"])
     if start_date > end_date:
         raise ValueError("start_date is after end_date")
-    match = re.fullmatch(r"(\d{4})-W(\d{2})", contract["period"])
-    if match is None:
-        raise ValueError("period must be an ISO week in YYYY-Www form")
-    try:
-        expected_start = date.fromisocalendar(int(match.group(1)), int(match.group(2)), 1)
-        expected_end = date.fromisocalendar(int(match.group(1)), int(match.group(2)), 7)
-    except ValueError:
-        raise ValueError("period must be a valid ISO week")
-    if start_date != expected_start or end_date != expected_end:
-        raise ValueError("start_date and end_date do not match the declared ISO week")
     sources = contract.get("sources")
     if not isinstance(sources, list) or not sources:
         raise ValueError("sources must be a non-empty list")
@@ -72,8 +126,18 @@ def main() -> int:
     parser.add_argument("--period", required=True)
     parser.add_argument("--contract", type=Path, required=True)
     parser.add_argument("--input-dir", type=Path, required=True)
+    parser.add_argument("--approval-manifest", type=Path)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
+
+    project_root = Path(__file__).resolve().parent.parent
+    try:
+        ensure_safe_evidence_path(
+            args.out, args.input_dir, args.contract, args.approval_manifest, project_root,
+        )
+    except PreflightError as error:
+        print("check-inputs: {}".format(error), file=sys.stderr)
+        return 2
 
     try:
         contract, start_date, end_date, contract_hash = load_contract(args.contract)
@@ -90,18 +154,36 @@ def main() -> int:
         })
         return 2
 
+    try:
+        preflight = validate_preflight(
+            args.approval_manifest,
+            contract,
+            contract_hash,
+            args.period,
+            args.input_dir,
+            project_root,
+        )
+    except PreflightError as error:
+        write_evidence(args.out, {
+            "schema_version": 1,
+            "period": args.period,
+            "contract_version": contract["contract_version"],
+            "contract_sha256": contract_hash,
+            "run_mode": "simulation" if contract.get("simulation_only") is True else "real",
+            "approval_manifest_sha256": None,
+            "status": "blocked",
+            "inputs": [],
+            "metrics": {},
+            "errors": ["preflight: {}".format(error)],
+        })
+        return 2
+
     inputs = []
     metrics = {}
     errors = []
-    if args.period != contract["period"]:
-        errors.append("requested period {} differs from contract period {}".format(args.period, contract["period"]))
     for source in contract["sources"]:
-        path = args.input_dir / source["file"]
-        if not path.is_file():
-            errors.append("{}: missing source".format(source["file"]))
-            continue
-        content = path.read_bytes()
-        source_hash = hashlib.sha256(content).hexdigest()
+        content = preflight["source_contents"][source["file"]]
+        source_hash = preflight["source_hashes"][source["file"]]
         try:
             decoded = content.decode("utf-8")
         except UnicodeDecodeError:
@@ -137,7 +219,7 @@ def main() -> int:
                 errors.append("{}:{}: blank key {}".format(source["file"], line_number, source["key_column"]))
             else:
                 if record_id in seen_keys:
-                    errors.append("{}:{}: duplicate record_id".format(source["file"], line_number))
+                    errors.append("{}:{}: duplicate key in {}".format(source["file"], line_number, source["key_column"]))
                 seen_keys.add(record_id)
             try:
                 row_date = date.fromisoformat(row[source["date_column"]])
@@ -145,7 +227,7 @@ def main() -> int:
                 errors.append("{}:{}: invalid date".format(source["file"], line_number))
                 continue
             if not start_date <= row_date <= end_date:
-                errors.append("{}:{}: date outside requested period {}".format(source["file"], line_number, args.period))
+                errors.append("{}:{}: date outside contract range".format(source["file"], line_number))
             try:
                 value = Decimal(row[source["value_column"]])
             except (InvalidOperation, TypeError):
@@ -163,6 +245,8 @@ def main() -> int:
         "period": args.period,
         "contract_version": contract["contract_version"],
         "contract_sha256": contract_hash,
+        "run_mode": preflight["run_mode"],
+        "approval_manifest_sha256": preflight["approval_manifest_sha256"],
         "status": "blocked" if errors else "pass",
         "inputs": inputs,
         "metrics": {} if errors else metrics,
