@@ -1,7 +1,7 @@
 # Project Status
 
 Status: synthetic-only-stage-complete; awaiting-external-prerequisites
-Last updated: 2026-11-03
+Last updated: 2026-11-04
 
 ## Current baseline
 
@@ -20,7 +20,7 @@ There is no executable ticket within the current synthetic-only scope. The full 
 - **Tickets 01, 02, 05–11:** closed; synthetic-stage work is complete.
 - **Ticket 03 — historical metric validation:** `open` / `needs-info`; skipped for this scope and remains incomplete. Resume only after the data owner approves the metric contract and handling rules, provides one historical export, and the user authorizes processing. Do not read or import real data before then.
 - **Ticket 04 — real draft acceptance:** `open` / `needs-info`; blocked by Ticket 03. Keep it incomplete until Ticket 03 and its real-data prerequisites are complete. Acceptance remains a user decision on a specific draft version.
-- **Windows validation:** deferred until a Windows environment is available; report Mac verification only until it is actually tested.
+- **Windows validation:** partially validated under Ticket 12; full compatibility sign-off is deferred. The 2026-11-04 Windows 11 run recorded structural and synthetic-validator passes and a green unit suite with one platform skip; the Codex guidance check remains pending. No compatibility claim is made until all checks pass.
 
 No other open TODO/FIXME or executable ticket was found. Do not treat synthetic acceptance or scheduling as completing Ticket 03 or unblocking Ticket 04.
 
@@ -28,7 +28,7 @@ No other open TODO/FIXME or executable ticket was found. Do not treat synthetic 
 
 - Ticket 03 needs data-owner approval of the metric contract and handling rules, one export, and user authorization before real-data work can start.
 - Ticket 04 depends on Ticket 03 and remains `needs-info` while that dependency is open.
-- Windows validation has not been performed.
+- Windows validation is partially performed on Windows 11 under Ticket 12; the Codex guidance check remains pending because the local model gateway is unavailable. No compatibility claim is made.
 
 ## Verification
 

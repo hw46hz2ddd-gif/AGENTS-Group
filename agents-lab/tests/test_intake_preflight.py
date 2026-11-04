@@ -250,7 +250,12 @@ class IntakePreflightTests(unittest.TestCase):
         source = self.input_dir / "mes.csv"
         linked_source = self.input_dir / "mes-link.csv"
         source.rename(linked_source)
-        source.symlink_to(linked_source.name)
+        try:
+            source.symlink_to(linked_source.name)
+        except OSError as error:
+            if sys.platform == "win32" and getattr(error, "winerror", None) == 1314:
+                self.skipTest("creating symlinks requires Windows Developer Mode or elevation")
+            raise
 
         with self.assertRaises(PreflightError) as raised:
             self.validate()
@@ -280,8 +285,9 @@ class IntakePreflightTests(unittest.TestCase):
         contract = json.loads(json.dumps(self.contract))
         unsafe_name = "mes.csv\nOWNER-SENTINEL"
         unsafe_bytes = b"date,record_id,qty\n2026-10-26,K-001,1\n"
-        (self.input_dir / "mes.csv").unlink()
-        (self.input_dir / unsafe_name).write_bytes(unsafe_bytes)
+        if sys.platform != "win32":
+            (self.input_dir / "mes.csv").unlink()
+            (self.input_dir / unsafe_name).write_bytes(unsafe_bytes)
         contract["sources"][0]["file"] = unsafe_name
         contract_sha256 = sha256(json.dumps(contract, sort_keys=True).encode("utf-8"))
         manifest = json.loads(json.dumps(self.manifest))
@@ -296,6 +302,7 @@ class IntakePreflightTests(unittest.TestCase):
             self.validate(contract=contract, contract_sha256=contract_sha256)
 
         self.assert_safe_error(raised.exception)
+        self.assertEqual(str(raised.exception), "contract source list is invalid")
 
     def test_unsafe_approval_record_path_is_rejected(self):
         manifest = dict(self.manifest)
