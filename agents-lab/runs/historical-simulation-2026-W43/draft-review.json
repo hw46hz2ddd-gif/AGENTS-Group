@@ -1,0 +1,10 @@
+{
+  "draft_sha256": "a6177d9256d67fdd48af4b4ff8636938008944e0a441a4895d22dfa86835e1f4",
+  "errors": [],
+  "evidence_sha256": "7b19bebb13bda3dcde3f67a5be9898a66c79fa79a8c205ebfd4d883a79f66607",
+  "period": "2026-W43",
+  "schema_version": 1,
+  "source_task_id": "sim-historical-2026-W43",
+  "status": "pass",
+  "task_id": "sim-historical-2026-W43-draft"
+}

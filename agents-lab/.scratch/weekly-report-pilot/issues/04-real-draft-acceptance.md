@@ -18,4 +18,6 @@
 ## Comments
 
 - 2026-11-03：用户指示跳过当前范围内的 Ticket 03 验证并完成合成数据阶段。本票仍为真实数据工作，保持 `open` 且受 Ticket 03 阻塞；不得把合成 Ticket 10 的完成当作本票完成。
+- 2026-11-03：Ticket 14 的合成 `2026-W43` 草稿通过独立复核，并在 Git 忽略的临时模拟产物中演练了 accepted/returned 门禁。本次没有形成真实用户验收，也未发送报告；本票继续 `open` 并受 Ticket 03 阻塞。
+- 2026-11-04：合成 Stage A 的本机端到端流程已完整跑通；本票仍只覆盖真实数据草稿验收，在数据阶段等待 Ticket 03 与真实获批资料。该依赖不阻塞合成 Stage A。
 - 2026-11-03：根据 issue-tracker 选票规则，将 triage 从 `ready-for-agent` 调整为 `needs-info`；Ticket 03 仍为 open/needs-info，故本票尚不可执行。Ticket 04 保持 open，待 Ticket 03 的外部前置条件满足后再重新分诊。

@@ -1,0 +1,10 @@
+{
+  "draft_sha256": "01c5d2f08e31b66fabff7e23872767c02efe7d486c3872d6c9d85d547155fb72",
+  "errors": [],
+  "evidence_sha256": "de6bd125401ed3457a4873bda846844d06e15c7183a23c04529795d9ae9bc7dc",
+  "period": "2026-W44",
+  "schema_version": 1,
+  "source_task_id": "trial-scheduled-20261102-162717-ada15b",
+  "status": "pass",
+  "task_id": "trial-scheduled-20261102-162717-ada15b-draft"
+}

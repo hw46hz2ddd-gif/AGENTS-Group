@@ -1,0 +1,24 @@
+{
+  "contract_sha256": "ab4855a3c7418a1439af8ec35181b7731f38a52d0eb328d27641022682028394",
+  "contract_version": "historical-simulation-v1",
+  "errors": [],
+  "inputs": [
+    {
+      "path": "mes.csv",
+      "rows": 4,
+      "sha256": "411e8684fc6ae45af72c14ee542c8813126d65ac3348f611524bff9b8ac63b49"
+    },
+    {
+      "path": "ai_ehs.csv",
+      "rows": 2,
+      "sha256": "a2e32269a9d76cfd21a622b8309b1537b05b69d66ef9519ca04410e45b4272f7"
+    }
+  ],
+  "metrics": {
+    "case_count": 3,
+    "output_qty": 40
+  },
+  "period": "2026-W43",
+  "schema_version": 1,
+  "status": "pass"
+}

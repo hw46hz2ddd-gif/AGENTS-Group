@@ -1,0 +1,31 @@
+{
+  "contract": "contracts/historical-simulation.v1.json",
+  "contract_sha256": "ab4855a3c7418a1439af8ec35181b7731f38a52d0eb328d27641022682028394",
+  "contract_version": "historical-simulation-v1",
+  "errors": [
+    "input validation blocked",
+    "evidence: ai_ehs.csv: missing source",
+    "ai_ehs.csv: missing source during review",
+    "ai_ehs.csv: missing fingerprint in evidence"
+  ],
+  "evidence_sha256": "3cbfbbd52c57e354f4ce1ed2e0776e466a287f68c979f0c997ba1ebd432b2166",
+  "input_dir": "runs/historical-simulation-blocked-2026-W43/inputs",
+  "period": "2026-W43",
+  "schema_version": 1,
+  "sources": [
+    {
+      "expected_sha256": "411e8684fc6ae45af72c14ee542c8813126d65ac3348f611524bff9b8ac63b49",
+      "observed_sha256": "411e8684fc6ae45af72c14ee542c8813126d65ac3348f611524bff9b8ac63b49",
+      "path": "mes.csv",
+      "status": "pass"
+    },
+    {
+      "expected_sha256": null,
+      "observed_sha256": null,
+      "path": "ai_ehs.csv",
+      "status": "blocked"
+    }
+  ],
+  "status": "blocked",
+  "task_id": "sim-historical-2026-W43-blocked"
+}

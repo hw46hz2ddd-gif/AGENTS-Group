@@ -1,0 +1,10 @@
+{
+  "draft_sha256": "d60cc1f13726f86267b809df957ea9909cccd0c4616845ab91d1c4caa09b6dbd",
+  "errors": [],
+  "evidence_sha256": "de6bd125401ed3457a4873bda846844d06e15c7183a23c04529795d9ae9bc7dc",
+  "period": "2026-W44",
+  "schema_version": 1,
+  "source_task_id": "trial-20261102-retry-b",
+  "status": "pass",
+  "task_id": "trial-20261102-retry-b-draft"
+}

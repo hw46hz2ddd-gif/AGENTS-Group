@@ -1,0 +1,10 @@
+{
+  "draft_sha256": "024570d8856e52d3008271009f1159083516a0c95926af361eb8eb3ab796be42",
+  "errors": [],
+  "evidence_sha256": "de6bd125401ed3457a4873bda846844d06e15c7183a23c04529795d9ae9bc7dc",
+  "period": "2026-W44",
+  "schema_version": 1,
+  "source_task_id": "demo-pass-2026-W44",
+  "status": "pass",
+  "task_id": "demo-pass-2026-W44-draft"
+}

@@ -1,0 +1,18 @@
+{
+  "contract_sha256": "ab4855a3c7418a1439af8ec35181b7731f38a52d0eb328d27641022682028394",
+  "contract_version": "historical-simulation-v1",
+  "errors": [
+    "ai_ehs.csv: missing source"
+  ],
+  "inputs": [
+    {
+      "path": "mes.csv",
+      "rows": 4,
+      "sha256": "411e8684fc6ae45af72c14ee542c8813126d65ac3348f611524bff9b8ac63b49"
+    }
+  ],
+  "metrics": {},
+  "period": "2026-W43",
+  "schema_version": 1,
+  "status": "blocked"
+}

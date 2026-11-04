@@ -1,0 +1,12 @@
+{
+  "simulation_only": true,
+  "period": "2026-W43",
+  "metrics": {
+    "case_count": 3,
+    "output_qty": 40
+  },
+  "units": {
+    "case_count": "cases",
+    "output_qty": "pieces"
+  }
+}

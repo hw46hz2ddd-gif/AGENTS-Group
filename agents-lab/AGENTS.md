@@ -11,7 +11,7 @@ The user-level Codex working agreements still apply. This file contains only rul
 ## Current boundary
 
 - Stage A uses synthetic weekly-report data. A real data source enters the project only after its owner approves a metric contract and handling rules.
-- Keep raw inputs, run records, and generated reports in the Git-ignored local directories documented in `README.md`.
+- Keep future raw inputs, run records, and generated reports in the Git-ignored local directories documented in `README.md`. The synchronization commit contains a one-time snapshot of 43 previously ignored synthetic artifacts from those paths; `inputs/README.md` was already tracked. Treat the snapshot as simulation records, not real data or approval evidence. Future files remain ignored by default.
 - Use the phase CLI to write each `tasks/` record, and commit each task-state transition so Git can replay it. Treat a `ready` source or draft task as valid only while its phase-specific artifact verification passes.
 - For synthetic report drafting, the writer and independent reviewer use separate Codex sessions and the role guides in `docs/agents/demo-writer.md` and `docs/agents/demo-reviewer.md`.
 - Keep one bounded outcome per issue. Record the command and observed result when handing it off.

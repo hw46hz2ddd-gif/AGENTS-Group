@@ -2,6 +2,7 @@
 !/inputs/README.md
 /runs/
 /reports/generated/
+.worktrees/
 __pycache__/
 *.pyc
 .DS_Store

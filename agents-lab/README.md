@@ -23,7 +23,19 @@ python3 -m unittest discover -s tests -v
 python3 scripts/check_inputs.py --period 2026-W44 --contract contracts/demo.v1.json --input-dir fixtures/demo --out runs/demo-2026-W44/evidence.json
 ```
 
-The command exits `0` with `status: pass` for the fixed demo sample. An invalid input or contract exits `2` and writes `status: blocked` with locatable errors. The evidence includes the contract and source SHA-256 hashes, row counts, and aggregate metrics. It has no timestamp, so identical inputs produce identical output bytes. The generated evidence stays under the Git-ignored `runs/` directory.
+The command exits `0` with `status: pass` for the fixed demo sample. An invalid input or contract exits `2` and writes `status: blocked` with locatable errors. The evidence includes the contract and source SHA-256 hashes, row counts, and aggregate metrics. It has no timestamp, so identical inputs produce identical output bytes. New evidence is written under `runs/`, which is ignored by default. The synchronization commit includes the reviewed synthetic artifact snapshot documented under Local data.
+
+## Historical-week simulation (synthetic only)
+
+`fixtures/historical-simulation/` contains a fictional intake at `fixtures/historical-simulation/intake-simulation.md` and a one-week synthetic export for `2026-W43`. It simulates the shape of an approved Ticket 03 intake; it is not a data-owner approval, real historical export, or authorization to process business data. Its documented totals are `output_qty=40 pieces` and `case_count=3 cases`. Ticket 03 and Ticket 04 remain open for their real-data scope.
+
+Reproduce the synthetic evidence with:
+
+```sh
+python3 scripts/check_inputs.py --period 2026-W43 --contract contracts/historical-simulation.v1.json --input-dir fixtures/historical-simulation --out runs/historical-simulation-2026-W43/evidence.json
+```
+
+Ticket 14 records the source review, a missing-source blocked case, the separately reviewed synthetic draft, and temporary decision-gate exercises. New generated evidence, drafts, and decisions stay ignored by default in `runs/` and `reports/generated/`; the synchronization commit includes the reviewed synthetic snapshot already present on the local Mac.
 
 The contract's inclusive `start_date` and `end_date` must be the Monday and Sunday of its declared ISO week. Row-level diagnostics identify the source file and row but omit raw record keys and dates. Contract date errors also avoid echoing the supplied date value.
 
@@ -74,9 +86,24 @@ After a person reviews one specific `ready` draft and decides, `record_draft_dec
 
 Ticket 10 exercises this gate with the synthetic `2026-W44` workflow. It does not create an acceptance record for the committed demo draft. Real historical-week data remains unavailable until the data owner approves the intake and handling rules described above.
 
+## Full synthetic run on this Mac
+
+The complete synthetic path has been run through input validation, source audit, draft generation, independent review, and both decision-gate branches. The local copied intake and CSVs are under `inputs/historical-week/simulation-only/2026-W43/`; the generated evidence, draft, and temporary decisions are under `runs/` and `reports/generated/`. These paths are ignored for new files. The synchronization commit includes this reviewed synthetic snapshot despite the ignore rules. The source and draft task records are tracked as `tasks/sim-localpath-20261104-source.md` and `tasks/sim-localpath-20261104-draft.md`. The draft is `ready` for a human review and is not accepted.
+
+Verify the recorded run on this Mac with:
+
+```sh
+python3 scripts/source_audit.py verify --task tasks/sim-localpath-20261104-source.md
+python3 scripts/review_demo_report.py verify --task tasks/sim-localpath-20261104-draft.md
+python3 scripts/record_draft_decision.py verify --record runs/sim-localpath-20261104/decisions/synthetic-accepted.md
+python3 scripts/record_draft_decision.py verify --record runs/sim-localpath-20261104/decisions/synthetic-returned.md
+```
+
+The two decision records explicitly say `SIMULATION ONLY`; they demonstrate the CLI branches and are not a human acceptance or return of a real report. This synthetic Stage A run is not blocked by real-data Tickets 03 and 04. Those tickets remain open for a later phase after actual owner approval and export are provided.
+
 ## Local data
 
-Put future raw inputs under `inputs/`, run evidence under `runs/`, and generated drafts under `reports/generated/`. These paths are ignored by Git. The synthetic fixtures used for tests are tracked separately under `fixtures/`.
+Put future raw inputs under `inputs/`, run evidence under `runs/`, and generated drafts under `reports/generated/`. These paths are ignored by default. The local project had 44 files under these paths; `inputs/README.md` was already tracked, and this synchronization commit adds the other 43 after confirming they are synthetic. They record past simulations, not owner approval or real business data. Future files in these paths remain ignored unless explicitly added. The synthetic fixtures used for tests are tracked separately under `fixtures/`.
 
 For a historical-week check, first have the data owner complete and approve a local copy of `docs/historical-week-intake.md`. Keep the tracked template blank and the completed copy outside Git. The template is not an approved metric contract; real exports enter this workflow only after its scope and handling rules are confirmed.
 

@@ -1,0 +1,31 @@
+{
+  "contract": "contracts/demo.v1.json",
+  "contract_sha256": "e91554eab5b13cf131a9e43aaf255a68a6f28c08fa88e458505c881eef28d762",
+  "contract_version": "demo-v1",
+  "errors": [
+    "input validation blocked",
+    "evidence: ai_ehs.csv: missing source",
+    "ai_ehs.csv: missing source during review",
+    "ai_ehs.csv: missing fingerprint in evidence"
+  ],
+  "evidence_sha256": "f310755e6b8a5608aaf97dd3260714121919cb80dcb2fbcbd45e042b79b68e00",
+  "input_dir": "inputs/demo-blocked-2026-W44",
+  "period": "2026-W44",
+  "schema_version": 1,
+  "sources": [
+    {
+      "expected_sha256": "b5b28545279b0975705409a77abbac65c73c783b7aa794980a9606591aa6a2e1",
+      "observed_sha256": "b5b28545279b0975705409a77abbac65c73c783b7aa794980a9606591aa6a2e1",
+      "path": "mes.csv",
+      "status": "pass"
+    },
+    {
+      "expected_sha256": null,
+      "observed_sha256": null,
+      "path": "ai_ehs.csv",
+      "status": "blocked"
+    }
+  ],
+  "status": "blocked",
+  "task_id": "trial-20261102-blocked-a"
+}

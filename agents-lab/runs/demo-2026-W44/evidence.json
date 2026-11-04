@@ -1,0 +1,23 @@
+{
+  "contract_version": "demo-v1",
+  "errors": [],
+  "inputs": [
+    {
+      "path": "mes.csv",
+      "rows": 2,
+      "sha256": "b5b28545279b0975705409a77abbac65c73c783b7aa794980a9606591aa6a2e1"
+    },
+    {
+      "path": "ai_ehs.csv",
+      "rows": 2,
+      "sha256": "b1fed6963a96ddceb20fe76347337562eea5b33d66f8d95501516f87fe52e47a"
+    }
+  ],
+  "metrics": {
+    "case_count": 1,
+    "output_qty": 30
+  },
+  "period": "2026-W44",
+  "schema_version": 1,
+  "status": "pass"
+}
