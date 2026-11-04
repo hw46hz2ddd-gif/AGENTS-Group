@@ -128,4 +128,4 @@ These task records and their Git-ignored evidence were verified in the implement
 - [x] Run the focused regressions and full suite; all 85 tests pass in the implementation worktree and all 92 tests pass in the parent-repository port.
 - [x] Re-run Task 4 artifact verifications, structural checker, diff check, JSON-template parse, and ignored-path check; close Ticket 13 and record the final documentation/closeout.
 - [x] Fix independent-review regression: missing or unreadable contracts remain blocked and their finalized tasks verify deterministically; two focused cases failed before the fix and passed after it.
-- [x] Defer minor polish: the duplicate unreachable `unittest.main()` entry point in `tests/test_check_inputs.py` has no runtime impact and is recorded for a future cleanup.
+- [x] Remove the duplicate unreachable `unittest.main()` entry point in `tests/test_check_inputs.py` as closeout maintenance; rerun the parent-port full suite and structural checks.

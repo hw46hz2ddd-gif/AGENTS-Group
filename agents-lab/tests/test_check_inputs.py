@@ -603,9 +603,6 @@ class CheckInputsCliTests(unittest.TestCase):
             self.assertEqual(mes_evidence["sha256"], approved_hashes["mes.csv"])
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 if __name__ == "__main__":
     unittest.main()

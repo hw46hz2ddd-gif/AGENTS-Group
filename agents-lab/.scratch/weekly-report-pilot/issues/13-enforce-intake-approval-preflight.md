@@ -35,7 +35,7 @@
 ## Comments
 
 - 2026-11-04: User approved the design and implementation plan. Tests use only synthetic CSVs and fabricated temporary metadata; they do not simulate a data-owner approval or export. The user's separate Ticket 03 processing authorization remains recorded, but no real data was read. No Windows result is created.
-- 2026-11-04: Final independent review found that finalized tasks with a missing or unreadable contract were blocked but could not pass `verify`. Two regression cases failed before the fix and pass after it; unchanged blocked artifacts verify, and a changed review is rejected. One unrelated minor cleanup is deferred: `tests/test_check_inputs.py` contains a duplicate unreachable `unittest.main()` block.
+- 2026-11-04: Final independent review found that finalized tasks with a missing or unreadable contract were blocked but could not pass `verify`. Two regression cases failed before the fix and pass after it; unchanged blocked artifacts verify, and a changed review is rejected. The duplicate unreachable `unittest.main()` block in `tests/test_check_inputs.py` was removed in follow-up closeout maintenance.
 
 ## Completion
 
@@ -45,5 +45,6 @@
 - The tracked manifest example parsed with `python3 -m json.tool docs/historical-week-intake.manifest.example.json`; `git check-ignore -- inputs/historical-week/approval/manifest.json` confirmed the local approval path is ignored.
 - In the implementation worktree, `source_audit.py verify --task tasks/sim-localpath-20261104-source.md` exited `0` with source `ready`; `review_demo_report.py verify --task tasks/sim-localpath-20261104-draft.md` exited `0` with draft `ready`. These task files and their Git-ignored evidence are local-only and are not included in the parent-repository PR.
 - Both temporary decision records (`synthetic-accepted.md` and `synthetic-returned.md`) verified with exit `0`; they are explicitly simulation-only and do not record a real human decision.
-- Review regressions cover protected output paths and hard-link aliases, ISO week/date binding, safe diagnostics, and verification of blocked tasks with invalid contracts. The Important review finding is fixed and covered by tests; one Minor duplicate test entry point is deferred.
+- Review regressions cover protected output paths and hard-link aliases, ISO week/date binding, safe diagnostics, and verification of blocked tasks with invalid contracts. The Important review finding is fixed and covered by tests; the duplicate test entry point was removed in follow-up closeout maintenance.
+- Follow-up closeout verification: `python3 -m unittest discover -s tests -q` passed all 92 tests; nested and root `codex-check` passed; `git diff --check` passed.
 - No real data, owner approval, or export was accessed or created. Tickets 03/04 remain open for real-data work; Windows validation remains assigned to user-run Ticket 12.
