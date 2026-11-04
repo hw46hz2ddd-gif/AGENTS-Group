@@ -80,6 +80,36 @@ Put future raw inputs under `inputs/`, run evidence under `runs/`, and generated
 
 For a historical-week check, first have the data owner complete and approve a local copy of `docs/historical-week-intake.md`. Keep the tracked template blank and the completed copy outside Git. The template is not an approved metric contract; real exports enter this workflow only after its scope and handling rules are confirmed.
 
+## Historical intake approval preflight
+
+Every contract without `simulation_only: true` now requires an explicit machine-readable approval manifest before the validator opens source CSV contents. Start from `docs/historical-week-intake.manifest.example.json`; it contains placeholders and deliberately unapproved values. After the data owner and approver complete the intake, keep the approved Markdown copy, completed manifest, and manifest-referenced approval record in a Git-ignored local directory such as `inputs/historical-week/approval/`. Keep the source CSVs in the separately approved input directory; it must contain exactly the approved contract files, with no extra entries, subdirectories, or symlinks. Check a chosen local path with `git check-ignore -- <path>` before storing approval material under the repository.
+
+The manifest binds a valid ISO week and its exact Monday-to-Sunday contract date range, contract version and raw-byte fingerprint, exact resolved input directory, source filenames and fingerprints, user processing authorization, and the allowed handling policy. The pilot accepts only read-only processing, `aggregates_only` Codex visibility, `safe_metadata_and_aggregates` evidence, and no external sharing. The validator checks that the declared fields and fingerprints agree; it does not cryptographically authenticate the named owner or approver. A person must verify the actual approval and handling scope before running real data. No real owner approval or export is included in this repository.
+
+Evidence output must be outside all protected input, fixture, contract, manifest, and approval-record paths, including hard-link aliases to those files. An unsafe `--out` target exits `2` without writing evidence there. Source finalization applies the same path boundary to its task, evidence, and review files; this prevents a source CSV from being read as evidence or overwritten as a review artifact. Task diagnostics are regenerated from the validator and never copy raw error text from a supplied evidence file.
+
+For a future approved real run, pass the same local manifest explicitly to both validation and source finalization:
+
+```sh
+# Replace these values using the approved intake before running any command.
+RUN_ID="approved-2026-WNN-001"
+PERIOD="YYYY-Www"
+APPROVED_CONTRACT="contracts/approved-contract.v1.json"
+APPROVED_INPUT_DIR="/absolute/approved/input/directory"
+APPROVAL_MANIFEST="/absolute/ignored/approval/manifest.json"
+
+python3 scripts/source_audit.py start --task "tasks/$RUN_ID.md" --id "$RUN_ID" --period "$PERIOD"
+git add "tasks/$RUN_ID.md"
+git commit -m "chore: start $RUN_ID task"
+python3 scripts/check_inputs.py --period "$PERIOD" --contract "$APPROVED_CONTRACT" --input-dir "$APPROVED_INPUT_DIR" --approval-manifest "$APPROVAL_MANIFEST" --out "runs/$RUN_ID/evidence.json"
+python3 scripts/source_audit.py finalize --task "tasks/$RUN_ID.md" --contract "$APPROVED_CONTRACT" --input-dir "$APPROVED_INPUT_DIR" --evidence "runs/$RUN_ID/evidence.json" --review "runs/$RUN_ID/source-review.json" --approval-manifest "$APPROVAL_MANIFEST"
+python3 scripts/source_audit.py verify --task "tasks/$RUN_ID.md"
+git add "tasks/$RUN_ID.md"
+git commit -m "chore: record $RUN_ID source review"
+```
+
+Use this sequence only after Ticket 03's actual owner-approved metric and handling rules, contract, export, and permitted local path have been supplied and checked. The local review artifact records the manifest path and fingerprint; the tracked task contains only run mode and fingerprint. The synthetic commands earlier in this README intentionally omit the manifest and use only explicitly marked fixtures or `simulation-only` paths. Tickets 03 and 04 remain open; Windows validation remains the user-run Ticket 12.
+
 ## Windows handoff
 
-Windows 11 testing is deferred. When scheduled, check out the same Git commit on Windows, run `py -3 scripts/codex_check.py`, and verify Codex loads the project `AGENTS.md`. Record the Windows result separately; the current Mac stage does not require it.
+Windows 11 compatibility validation is user-run Ticket 12. On Windows, check out the same Git commit, run `py -3 scripts/codex_check.py`, `py -3 -m unittest discover -s tests -v`, and the synthetic validator command listed in `.scratch/weekly-report-pilot/issues/12-windows-11-validation.md`; then record the tested commit and exact results there. No Windows result or compatibility claim is recorded here.

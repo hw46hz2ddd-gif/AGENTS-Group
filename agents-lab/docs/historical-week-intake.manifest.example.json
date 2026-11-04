@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "approval_state": "draft",
+  "simulation_only": false,
+  "data_owner": {
+    "name": "<DATA OWNER NAME>",
+    "title": "<DATA OWNER TITLE>"
+  },
+  "approver": {
+    "name": "<APPROVER NAME>",
+    "title": "<APPROVER TITLE>"
+  },
+  "approved_at": "YYYY-MM-DD",
+  "approval_record": {
+    "path": "intake-approved.md",
+    "sha256": "<SHA256 OF APPROVED INTAKE COPY>"
+  },
+  "user_processing_authorized": false,
+  "user_processing_authorized_at": "YYYY-MM-DD",
+  "scope": {
+    "period": "YYYY-Www",
+    "contract_version": "<APPROVED CONTRACT VERSION>",
+    "contract_sha256": "<SHA256 OF CONTRACT FILE>",
+    "input_dir": "/<ABSOLUTE APPROVED INPUT DIRECTORY>"
+  },
+  "sources": [
+    {
+      "file": "<EXACT SOURCE FILENAME.csv>",
+      "sha256": "<SHA256 OF SOURCE FILE>"
+    }
+  ],
+  "handling": {
+    "read_only": false,
+    "codex_visibility": "<APPROVED VISIBILITY>",
+    "evidence_policy": "<APPROVED EVIDENCE POLICY>",
+    "external_sharing": false,
+    "retention_days": 0,
+    "cleanup_owner": "<CLEANUP OWNER>"
+  }
+}
