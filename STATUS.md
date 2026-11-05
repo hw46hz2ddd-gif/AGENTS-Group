@@ -18,8 +18,8 @@ Last updated: 2026-11-05
 There is no executable ticket within the current synthetic-only scope. The full ticket inventory is in `agents-lab/.scratch/weekly-report-pilot/issues/`:
 
 - **Tickets 01, 02, 05–13:** closed; synthetic-stage work is complete.
-- **Ticket 03 — historical metric validation:** `open` / `needs-info`; skipped for this scope and remains incomplete. Resume only after the data owner approves the metric contract and handling rules, provides one historical export, and the user authorizes processing. Do not read or import real data before then.
-- **Ticket 04 — real draft acceptance:** `open` / `needs-info`; blocked by Ticket 03. Keep it incomplete until Ticket 03 and its real-data prerequisites are complete. Acceptance remains a user decision on a specific draft version.
+- **Ticket 03 — historical metric validation:** `open` / `needs-info`; may run on Mac or Windows. Skipped for this scope and remains incomplete. Resume only after the data owner approves the metric contract and handling rules, provides one historical export, and the user authorizes processing. Do not read or import real data before then.
+- **Ticket 04 — real draft acceptance:** `open` / `needs-info`; may run on Mac or Windows. Blocked by Ticket 03. Keep it incomplete until Ticket 03 and its real-data prerequisites are complete. Acceptance remains a user decision on a specific draft version.
 - **Windows validation:** complete for the tested scope under Ticket 12 (Windows 11 build 10.0.26100.8037, commit `eb138f7`). All checks passed; no broader compatibility claim is made.
 
 No other open TODO/FIXME or executable ticket was found. Do not treat synthetic acceptance or scheduling as completing Ticket 03 or unblocking Ticket 04.

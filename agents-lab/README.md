@@ -108,7 +108,9 @@ git add "tasks/$RUN_ID.md"
 git commit -m "chore: record $RUN_ID source review"
 ```
 
-Use this sequence only after Ticket 03's actual owner-approved metric and handling rules, contract, export, and permitted local path have been supplied and checked. The local review artifact records the manifest path and fingerprint; the tracked task contains only run mode and fingerprint. The synthetic commands earlier in this README intentionally omit the manifest and use only explicitly marked fixtures or `simulation-only` paths. Tickets 03 and 04 remain open; Windows validation remains the user-run Ticket 12.
+On Windows, use `py -3` in place of `python3` and quote paths containing spaces or non-ASCII characters in PowerShell. The contract, manifest, evidence format, and acceptance criteria are identical on both platforms.
+
+Use this sequence only after Ticket 03's actual owner-approved metric and handling rules, contract, export, and permitted local path have been supplied and checked. The local review artifact records the manifest path and fingerprint; the tracked task contains only run mode and fingerprint. The synthetic commands earlier in this README intentionally omit the manifest and use only explicitly marked fixtures or `simulation-only` paths. Tickets 03 and 04 remain open and may run on Mac or Windows; Windows validation is closed for the tested scope under Ticket 12.
 
 ## Windows handoff
 
